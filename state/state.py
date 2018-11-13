@@ -6,6 +6,7 @@
 import math
 
 # local imports
+from ..physics import physics
 from extra import FallData, Event
 
 
@@ -46,7 +47,7 @@ class Car(object):
         self.speed           = 0
         self.distance        = 0
         self.is_accelerating = False
-        self.prev_events     = [Event(START)]
+        self.prev_events     = [Event(self.START)]
         self.fallen          = None
         self.model           = model
 
@@ -98,7 +99,7 @@ class Track(object):
     # global representations independent of each track
     DEFAULT_LAP = 8 * math.pi
 
-    def __init__(self, model, num_participants, lap_distance=DEFAULT_LAP):
+    def __init__(self, num_participants, model, lap_distance=DEFAULT_LAP):
         self.participants = [Car(i, i) for i in range(num_participants)]
         self.lap_distance = lap_distance
         self.model        = model
