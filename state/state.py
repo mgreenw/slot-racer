@@ -8,7 +8,7 @@
 import math
 
 # local imports
-from ..physics import physics
+from physics import physics
 from extra import FallData, Event
 
 
