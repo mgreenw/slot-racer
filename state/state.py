@@ -1,5 +1,7 @@
 # Author: Pulkit Jain
 # 11/12/2018
+#
+# Module to define the game's state
 
 
 # package imports
@@ -13,9 +15,12 @@ from extra import FallData, Event
 class Car(object):
     """A Car is what will be used to race others on our Track
 
+    An important invariant in our definition is that a cars id is also its
+    position on the track (innermost track at start has id = 0)
+
     It is defined by the following attributes:
-    - id: A unique identifier for the car. This is the index of the car in the
-          participants attribute of the track
+    - id: This is the index of the car in the participants attribute of the
+          track. NOTE invariant defined above
     - speed: The speed of the car at the current time
     - distance: The r distance of the car from the starting point on the track
     - is_accelerating: A boolean representing whether the accelerating event
@@ -42,7 +47,7 @@ class Car(object):
     ACCELERATE        = "A"
     STOP_ACCELERATING = "R"
 
-    def __init__(self, idx, model):
+    def __init__(self, idx, model=None):
         self.id              = idx
         self.speed           = 0
         self.distance        = 0
@@ -63,8 +68,7 @@ class Car(object):
         self.fallen = FallData(speed, distance)
 
     def update(self):
-        """
-        Gets the new speed and distance of the car.
+        """Gets the new speed and distance of the car.
         - If it has fallen off the track, 
             we reset the speed to 0 and leave the distance unchanged. This
             allows us to restart the car from where it fell off on the track.
@@ -72,7 +76,7 @@ class Car(object):
         """
         speed, distance = physics.car_timestep(self)
         if physics.falling(distance, speed):
-            self.speed     = 0
+            self.speed = 0
             self.fall(speed, distance)
         else:
             self.speed, self.distance = speed, distance
@@ -82,6 +86,9 @@ class Car(object):
 class Track(object):
     """A Track is what we will race our Cars on
 
+    An important invariant in our definition is that the id of each car will be
+    its index in our participants list
+
     It is defined by the following attributes:
     - participants: List of Cars participating in the race
     - lap_distance: The length of a lap. Used to measure the performance of
@@ -90,6 +97,8 @@ class Track(object):
           a resizable track using the renderer module
 
     And by the following behaviours:
+    - add_participant(Car): Adds participants to the track and returns its
+          index in our participants list
     - update_all(): Run an update on every car. This is to be called at each
           timestep
     - resync(participants): Updates our list of participants with the more
@@ -97,22 +106,31 @@ class Track(object):
     """
 
     # global representations independent of each track
-    DEFAULT_LAP = 8 * math.pi
+    DEF_LAP = 8 * math.pi
 
-    def __init__(self, num_participants, model, lap_distance=DEFAULT_LAP):
-        self.participants = [Car(i, i) for i in range(num_participants)]
+    def __init__(self, model=None, num_participants=0, lap_distance=DEF_LAP):
+        self.participants = [Car(i) for i in range(num_participants)]
         self.lap_distance = lap_distance
         self.model        = model
 
+    def add_participant(self, car):
+        if car not in self.participants:
+            car.id = len(self.participants)
+            self.participants.append(car)
+        return car.id
+
     def update_all(self):
-        for car in participants:
-            car.update()
-        # CHECK FOR WINNERS
-        # Maybe store a cap on the laps we need to compete
+        if participants:
+            for car in participants:
+                car.update()
+            # CHECK FALLEN CARS FOR COLLISIONS
+            # CHECK FOR WINNERS
+            # Maybe store a cap on the laps we need to compete
+        else:
+            raise Exception("There are no cars on the track!")
 
     def resync(self, participants):
-        """
-        This is subject to more change once we have our basic version of the
+        """This is subject to more change once we have our basic version of the
         game running
         """
         self.participants = participants

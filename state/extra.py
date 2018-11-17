@@ -1,5 +1,8 @@
 # Author: Pulkit Jain
 # 11/12/2018
+#
+# Module to define extraneous classes, exceptions, and functions the other
+# modules need
 
 
 # package imports
@@ -31,5 +34,17 @@ class Event(object):
     def __init__(self, event_type):
         self.event_type = event_type
         self.timestamp  = datetime.datetime.now()
+
+
+def log(test, msg):
+    """Checks if test passed or failed, and reports it
+    :param: test: list of booleans representing if all features passed
+    :param: msg:  string representing what the test tested
+    :return: None
+    """
+    report = "\033[1m"
+    report += "\033[92mPASSED" if all(test) else "\033[91mFAILED"
+    report += "\033[0m"
+    print("{}\n{}".format(report, msg))
 
 
