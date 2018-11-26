@@ -8,8 +8,8 @@
 import math
 
 # local imports
-from physics import physics
-from state.extra import FallData, Event
+from .extra import FallData, Event
+from ..physics import physics
 
 
 class Car(object):

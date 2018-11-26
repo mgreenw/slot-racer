@@ -5,9 +5,8 @@
 
 
 # local imports
-from state.state import Car, Track
-from state.extra import log
-
+from .state import Car, Track
+from .extra import log
 
 # global definitions
 INIT_LEN = 10
