@@ -9,7 +9,7 @@ import math
 
 # local imports
 from physics import physics
-from extra import FallData, Event
+from state.extra import FallData, Event
 
 
 class Car(object):
@@ -58,11 +58,11 @@ class Car(object):
 
     def accelerate(self):
         self.is_accelerating = True
-        self.prev_events.append(Event(ACCELERATE))
+        self.prev_events.append(Event(self.ACCELERATE))
 
     def stop_accelerating(self):
         self.is_accelerating = False
-        self.prev_events.append(Event(STOP_ACCELERATING))
+        self.prev_events.append(Event(self.STOP_ACCELERATING))
 
     def fall(self, speed, distance):
         self.fallen = FallData(speed, distance)
@@ -120,8 +120,8 @@ class Track(object):
         return car.id
 
     def update_all(self):
-        if participants:
-            for car in participants:
+        if self.participants:
+            for car in self.participants:
                 car.update()
             # CHECK FALLEN CARS FOR COLLISIONS
             # CHECK FOR WINNERS
@@ -131,8 +131,7 @@ class Track(object):
 
     def resync(self, participants):
         """This is subject to more change once we have our basic version of the
-        game running
-        """
+        game running"""
         self.participants = participants
 
 

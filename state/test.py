@@ -5,8 +5,12 @@
 
 
 # local imports
-from state import Car, Track
-from extra import log
+from state.state import Car, Track
+from state.extra import log
+
+
+# global definitions
+INIT_LEN = 10
 
 
 def test0():
@@ -14,15 +18,15 @@ def test0():
        - Initializes correctly
        - Adds cars while maintaining invariant
     """
-    INIT_LEN, TEST_LEN = 10, 11
-    track, match       = Track(num_participants=INIT_LEN), []
+    track, match = Track(num_participants=INIT_LEN), []
+    test_id      = 111
 
     # initializes correctly
     for idx, car in enumerate(track.participants):
         match.append(car.id == idx)
 
     # adds cars while maintining invariant
-    new_car = Car(TEST_LEN)
+    new_car = Car(test_id)
     track.add_participant(new_car)
     match.append(track.participants[-1].id == INIT_LEN)
 
@@ -30,40 +34,74 @@ def test0():
 
 
 def test1():
-    """Test1: Track updates and detects collisions correctly
-       - Updating track without cars should result in error
+    """Test1: Updating track without cars should result in error
     """
     track, match = Track(), []
 
-    # updating track without cars
     try:
         track.update_all()
         match.append(False)
     except:
         match.append(True)
 
-    # check if updates on all cars work if all of them accelerate
-    for car in track:
+    log(match, test1.__doc__)
+
+
+def test2():
+    """Test2: Updating cars works with acceleration
+    """
+    track, match = Track(num_participants=INIT_LEN), []
+
+    for car in track.participants:
         car.accelerate()
     track.update_all()
-    for car in track:
-        worked = not car.fallen
+    for i in range(1, INIT_LEN):
+        prev, car = track.participants[i-1], track.participants[i]
+        match.append(not car.fallen and car.speed == prev.speed and 
+            car.distance == prev.distance)
 
-    # check if updates on all cars works if some update acceleration
+    log(match, test2.__doc__)
 
+
+def test3():
+    """Test 3: Updating cars works with deceleration
+    """
+    track, match = Track(num_participants=INIT_LEN), []
+
+    for car in track.participants:
+        car.accelerate()
+    track.update_all()
+    for car in track.participants[::2]:
+        car.stop_accelerating()
+    track.update_all()
+    for i in range(1, INIT_LEN - 1):
+        prev, car = track.participants[i-1], track.participants[i+1]
+        match.append(not car.fallen and car.speed == prev.speed and
+            car.distance == prev.distance)
+
+    log(match, test3.__doc__)
+
+
+def test4():
+    """Contingent on physics fixing up collisions
+    """
     # check if updates on all cars works if car at edge of track (last car
     # in list) updates so that it falls off the track [[ only outermost car
     # should fall off track ]]
 
+
+def test5():
+    """Contingent on physics fixing up collisions
+    """
     # check if updates on all cars works if innermost car falls off track
     # [[ multiple cars should fall off track if collision ]]
-
-    log(match, test1.__doc__)
 
 
 def run():
     """Runs all tests"""
     test0()
     test1()
+    test2()
+    test3()
 
 

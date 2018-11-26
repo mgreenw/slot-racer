@@ -41,6 +41,10 @@ def log(test, msg):
     :param: test: list of booleans representing if all features passed
     :param: msg:  string representing what the test tested
     :return: None
+    Eg. test = [True, True, True], msg = "Test1: All cars exist",
+            Results in PASSED: {msg}.
+        test = [True, False, True], msg = "Test1: All cars exist",
+            Results in FAILED: {msg}.
     """
     report = "\033[1m"
     report += "\033[92mPASSED" if all(test) else "\033[91mFAILED"
