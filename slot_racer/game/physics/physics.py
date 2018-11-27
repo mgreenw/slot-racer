@@ -28,7 +28,7 @@ def colliding(d):
     return False
 
 def calculate_posn(car):
-    c = RATIO if car.get_id() == 0 else 1 - RATIO
+    c = RATIO if car.id == 0 else 1 - RATIO
     d = car.distance
     curr_width, scale_fn = ((BIG_WIDTH, scale_big_loop) if d >= c
         else (SMALL_WIDTH, scale_small_loop))
@@ -55,6 +55,6 @@ def calculate_distance(distance, speed):
     return distance + (speed * TIMESTEP) #TODO: temporary, might want to use method similar to in `falling`
 
 def car_timestep(car):
-    speed = calculate_velocity(car.speed, car.accellerating)
+    speed = calculate_velocity(car.speed, car.is_accelerating)
     distance = calculate_distance(car.distance, car.speed)
     return speed, distance

@@ -1,8 +1,10 @@
 import pyxel
 import math
 from enum import Enum
+from datetime import datetime
 
-from ..game import state
+
+from ..game import state, physics
 
 # Define the width and height of the screen
 # This makes for a nice 16x9 screen
@@ -60,7 +62,7 @@ class RenderState(Enum):
 
 class Renderer(object):
     def __init__(self):
-        # Generate the course
+        self.track = state.Track(num_participants=2)
 
         # Init pyxel
         # Weird case because max width is 255, but we will assume it is 256
@@ -71,13 +73,19 @@ class Renderer(object):
 
         # Setup buttons
         self.play_button = Button('Play', 60, 60, 30, 15, 4, 9)
-        self.play_button.set_on_press(self.switch_to_lobby)
+        self.play_button.set_on_press(self.switch_to_play)
 
         self.quit_button = Button('Quit', 170, 60, 30, 15, 4, 9)
         self.quit_button.set_on_press(lambda: pyxel.quit())
 
+        self.start_time = None
+        self.prev_time = None
+
     def switch_to_lobby(self):
         self.render_state = RenderState.LOBBY
+
+    def switch_to_play(self):
+        self.render_state = RenderState.PLAY
 
     def start(self):
         pyxel.run(self.update, self.draw)
@@ -85,6 +93,19 @@ class Renderer(object):
     def update(self):
         if not isinstance(self.render_state, RenderState):
             self.render_state = RenderState.MENU
+
+        if self.render_state is RenderState.PLAY:
+            if self.start_time is None:
+                self.track.participants[0].accelerate()
+                self.start_time = datetime.now()
+                self.prev_time = self.start_time
+            else:
+                now = datetime.now()
+                dt = now - self.prev_time
+                self.prev_time = now
+
+                # Update the track using the delta
+                self.track.update_all()
 
     def draw(self):
         pyxel.cls(7) # Clear screen, set background to white
@@ -99,6 +120,7 @@ class Renderer(object):
             # Allow users to join a server
             pass
         elif self.render_state is RenderState.PLAY:
+
             pyxel.text(110, 10, 'GO GO GO!', 0)
-            pass
+            print(physics.calculate_posn(self.track.participants[0]))
 
