@@ -1,9 +1,6 @@
 # Nathan Allen
-#
-# https://www.desmos.com/calculator/fgf5a3kiah
-# https://www.desmos.com/calculator/xbqhrdlyea
-# https://www.desmos.com/calculator/1ohpl1uzqj
-# https://www.desmos.com/calculator/sfrbqcwszh
+# 27 November 2018
+
 import math
 
 SOCKET_WIDTH = .5
@@ -20,10 +17,10 @@ ACCELLERATION_CONST = ACCELLERATION * TIMESTEP
 def falling(car):
     d = car.distance
     if d < RATIO:
-        c = BIG_WIDTH / (SMALL_WIDTH + BIG_WIDTH)
+        c = 1 - RATIO
         threshold = 1 - (c * math.cos(scale_small_loop(d, c)))
     else:
-        c = SMALL_WIDTH / (SMALL_WIDTH + BIG_WIDTH)
+        c = RATIO
         threshold = 1 + (c * math.cos(scale_big_loop(d, c)))
     return car.speed, threshold
 
@@ -31,8 +28,7 @@ def colliding(d):
     return False
 
 def calculate_posn(car):
-    c = ((SMALL_WIDTH if car.get_id() == 0 else BIG_WIDTH)
-        / (SMALL_WIDTH + BIG_WIDTH))
+    c = RATIO if car.get_id() == 0 else 1 - RATIO
     d = car.distance
     curr_width, scale_fn = ((BIG_WIDTH, scale_big_loop) if d >= c
         else (SMALL_WIDTH, scale_small_loop))
