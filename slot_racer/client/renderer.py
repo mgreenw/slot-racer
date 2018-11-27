@@ -1,5 +1,6 @@
 import pyxel
 import math
+from enum import Enum
 
 from ..game import state
 
@@ -18,8 +19,19 @@ HEIGHT = 143
 # 2. import the state and begin to work with it
 # 3. Look into the websocket stuff
 
-def d_to_t(d):
-    return (2.0 * math.pi * d) - (math.pi / 2.0)
+import asyncio
+import websockets
+
+async def hello():
+    async with websockets.connect(
+            'ws://localhost:8765') as websocket:
+        name = input("What's your name? ")
+
+        await websocket.send(name)
+        print(f"> {name}")
+
+        greeting = await websocket.recv()
+        print(f"< {greeting}")
 
 class Button(object):
     def __init__(self, text, x, y, w, h, background_color, text_color):
@@ -40,54 +52,50 @@ class Button(object):
     def set_on_press(self, on_press):
         self.on_press = on_press
 
+
+class RenderState(Enum):
+    MENU = 1
+    LOBBY = 2
+    PLAY = 3
+
 class Renderer(object):
     def __init__(self):
         # Generate the course
-        self.course_1 = []
-        for d in range(0, 51):
-            t = d_to_t(d / 50.0)
-            a = WIDTH / 2
-            sinsqt = math.sin(t) * math.sin(t)
-            x = int(round((a * math.cos(t)) / (1 + sinsqt))) + 127
-            y = int(round((a * math.sin(t) * math.cos(t)) / (1 + sinsqt))) + 70
-            self.course_1.append((x, y))
-
-        self.course_2 = []
-        for d in range(0, 51):
-            t = d_to_t(d + 0.5 / 50.0)
-            a = WIDTH / 2
-            sinsqt = math.sin(t) * math.sin(t)
-            x = int(round((a * math.cos(t)) / (1 + sinsqt))) + 127
-            y = int(round((a * math.sin(t) * math.cos(t)) / (1 + sinsqt))) + 70
-            self.course_2.append((x, y))
-
 
         # Init pyxel
         pyxel.init(WIDTH, HEIGHT)
         pyxel.mouse(True)
 
+        self.render_state = RenderState.MENU
+
         # Setup buttons
         self.play_button = Button('Play', 60, 60, 30, 15, 4, 9)
-        self.play_button.set_on_press(lambda: print('play pressed'))
+        self.play_button.set_on_press(self.switch_to_lobby)
 
         self.quit_button = Button('Quit', 170, 60, 30, 15, 4, 9)
         self.quit_button.set_on_press(lambda: pyxel.quit())
+
+    def switch_to_lobby(self):
+        self.render_state = RenderState.LOBBY
 
     def start(self):
         pyxel.run(self.update, self.draw)
 
     def update(self):
-        pass
+        if not isinstance(self.render_state, RenderState):
+            self.render_state = RenderState.MENU
 
     def draw(self):
         pyxel.cls(7) # Clear screen, set background to white
-        course = None
-        if pyxel.frame_count % 30 < 15:
-            course = self.course_1
-        else:
-            course = self.course_2
-        for x, y in course:
-            pyxel.pix(x, y, 9)
-        pyxel.text(110, 10, 'Slot Racer', 0)
-        self.play_button.render()
-        self.quit_button.render()
+
+        if self.render_state is RenderState.MENU:
+            # Play button or quit
+            pyxel.text(110, 10, 'Slot Racer', 0)
+            self.play_button.render()
+            self.quit_button.render()
+        elif self.render_state is RenderState.LOBBY:
+            # Allow users to join a server
+            pass
+        elif self.render_state is RenderState.PLAY:
+            pass
+
