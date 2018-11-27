@@ -6,8 +6,8 @@ from ..game import state
 
 # Define the width and height of the screen
 # This makes for a nice 16x9 screen
-WIDTH = 255
-HEIGHT = 143
+WIDTH = 256
+HEIGHT = 144
 
 # Client-only states
 # - Menu
@@ -63,7 +63,8 @@ class Renderer(object):
         # Generate the course
 
         # Init pyxel
-        pyxel.init(WIDTH, HEIGHT)
+        # Weird case because max width is 255, but we will assume it is 256
+        pyxel.init(WIDTH - 1 , HEIGHT)
         pyxel.mouse(True)
 
         self.render_state = RenderState.MENU
@@ -90,12 +91,14 @@ class Renderer(object):
 
         if self.render_state is RenderState.MENU:
             # Play button or quit
-            pyxel.text(110, 10, 'Slot Racer', 0)
+            pyxel.text(110, 10, 'SLOT RACER', 0)
             self.play_button.render()
             self.quit_button.render()
         elif self.render_state is RenderState.LOBBY:
+            pyxel.text(110, 10, 'JOIN A GAME', 0)
             # Allow users to join a server
             pass
         elif self.render_state is RenderState.PLAY:
+            pyxel.text(110, 10, 'GO GO GO!', 0)
             pass
 
