@@ -108,7 +108,7 @@ class Track(object):
     # global representations independent of each track
     DEF_LAP = 8 * math.pi
 
-    def __init__(self, model=None, num_participants=0, lap_distance=DEF_LAP):
+    def __init__(self, num_participants=0, model=None, lap_distance=DEF_LAP):
         self.participants = [Car(i) for i in range(num_participants)]
         self.lap_distance = lap_distance
         self.model        = model
