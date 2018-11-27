@@ -54,8 +54,8 @@ def calculate_velocity(speed, accellerating):
 def calculate_distance(distance, speed):
     return distance + (speed * TIMESTEP) #TODO: temporary, might want to use method similar to in `falling`
 
-def car_timestep(car, accellerating):
-    car.speed = calculate_velocity(car.speed, accellerating)
+def car_timestep(car):
+    car.speed = calculate_velocity(car.speed, car.is_accelerating)
     if falling(car):
         raise Exception("car falling")
     else:

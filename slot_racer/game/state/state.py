@@ -8,8 +8,8 @@
 import math
 
 # local imports
-from physics import physics
-from state.extra import FallData, Event
+from .extra import FallData, Event
+from ..physics import physics
 
 
 class Car(object):
@@ -75,7 +75,7 @@ class Car(object):
         - Otherwise we update our car with the new speed and distance
         """
         speed, distance = physics.car_timestep(self)
-        if physics.falling(distance, speed):
+        if physics.falling(self):
             self.speed = 0
             self.fall(speed, distance)
         else:
@@ -108,7 +108,7 @@ class Track(object):
     # global representations independent of each track
     DEF_LAP = 8 * math.pi
 
-    def __init__(self, model=None, num_participants=0, lap_distance=DEF_LAP):
+    def __init__(self, num_participants=0, model=None, lap_distance=DEF_LAP):
         self.participants = [Car(i) for i in range(num_participants)]
         self.lap_distance = lap_distance
         self.model        = model
