@@ -67,14 +67,14 @@ class Car(object):
     def fall(self, speed, distance):
         self.fallen = FallData(speed, distance)
 
-    def update(self):
+    def update(self, timestep):
         """Gets the new speed and distance of the car.
         - If it has fallen off the track,
             we reset the speed to 0 and leave the distance unchanged. This
             allows us to restart the car from where it fell off on the track.
         - Otherwise we update our car with the new speed and distance
         """
-        speed, distance = physics.car_timestep(self)
+        speed, distance = physics.car_timestep(self, timestep)
         if physics.falling(self):
             self.speed = 0
             self.fall(speed, distance)
@@ -119,10 +119,10 @@ class Track(object):
             self.participants.append(car)
         return car.id
 
-    def update_all(self):
+    def update_all(self, timestep):
         if self.participants:
             for car in self.participants:
-                car.update()
+                car.update(timestep)
             # CHECK FALLEN CARS FOR COLLISIONS
             # CHECK FOR WINNERS
             # Maybe store a cap on the laps we need to compete
