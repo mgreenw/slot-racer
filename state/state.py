@@ -69,13 +69,13 @@ class Car(object):
 
     def update(self):
         """Gets the new speed and distance of the car.
-        - If it has fallen off the track, 
+        - If it has fallen off the track,
             we reset the speed to 0 and leave the distance unchanged. This
             allows us to restart the car from where it fell off on the track.
         - Otherwise we update our car with the new speed and distance
         """
         speed, distance = physics.car_timestep(self)
-        if physics.falling(distance, speed):
+        if physics.falling(self):
             self.speed = 0
             self.fall(speed, distance)
         else:
@@ -133,5 +133,3 @@ class Track(object):
         """This is subject to more change once we have our basic version of the
         game running"""
         self.participants = participants
-
-
