@@ -75,7 +75,7 @@ class Car(object):
         - Otherwise we update our car with the new speed and distance
         """
         speed, distance = physics.car_timestep(self)
-        if physics.falling(distance, speed):
+        if physics.falling(self):
             self.speed = 0
             self.fall(speed, distance)
         else:
