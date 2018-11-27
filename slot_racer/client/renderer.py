@@ -9,7 +9,7 @@ HEIGHT = 143
 def d_to_t(d):
     return (2 * math.pi * d) - (math.pi / 2)
 
-class App:
+class Renderer:
     def __init__(self):
         pyxel.init(WIDTH, HEIGHT)
         self.course = []
@@ -24,6 +24,7 @@ class App:
 
         print(self.course)
 
+    def render(self):
         pyxel.run(self.update, self.draw)
 
     def update(self):
@@ -36,4 +37,8 @@ class App:
         for x, y in self.course:
             pyxel.pix(x, y, 9)
 
-App()
+renderer = Renderer()
+renderer.render()
+
+def render():
+    renderer.render()

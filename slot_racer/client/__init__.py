@@ -1,5 +1,3 @@
-"""Module to define how a server will use our game_code"""
+"""Module to define how a client will use our game_code"""
 
-from .trying import *
-
-
+from .renderer import render
