@@ -7,7 +7,7 @@
 import math
 
 SOCKET_WIDTH = .5
-TRACK_WIDTH = 40.0
+TRACK_WIDTH = 200.0
 MAX_SPEED = .5
 BIG_WIDTH = TRACK_WIDTH / 2.0 + 2.0 * math.sqrt(2) * SOCKET_WIDTH
 SMALL_WIDTH = BIG_WIDTH - 4.0 * SOCKET_WIDTH - 4.0 * math.sqrt(2) * SOCKET_WIDTH
@@ -24,7 +24,7 @@ def falling(car):
         threshold = 1 - (c * math.cos(scale_small_loop(d, c)))
     else:
         c = SMALL_WIDTH / (SMALL_WIDTH + BIG_WIDTH)
-        threshold = 1 - (c * math.cos(scale_big_loop(d, c)))
+        threshold = 1 + (c * math.cos(scale_big_loop(d, c)))
     return car.speed, threshold
 
 def colliding(d):
