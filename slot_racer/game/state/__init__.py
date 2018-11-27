@@ -3,5 +3,3 @@ game state"""
 
 # state module should provide access to all the definitions in state.py
 from .state import *
-
-
