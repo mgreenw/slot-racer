@@ -3,6 +3,7 @@ import math
 from enum import Enum
 from datetime import datetime
 
+import glfw
 
 from ..game import state, physics
 
@@ -63,13 +64,14 @@ class RenderState(Enum):
 class Renderer(object):
     def __init__(self):
         self.track = state.Track(num_participants=2)
+        self.stored = []
 
         # Init pyxel
         # Weird case because max width is 255, but we will assume it is 256
         pyxel.init(WIDTH - 1 , HEIGHT)
         pyxel.mouse(True)
 
-        self.render_state = RenderState.MENU
+        self.render_state = RenderState.PLAY
 
         # Setup buttons
         self.play_button = Button('Play', 60, 60, 30, 15, 4, 9)
@@ -95,8 +97,11 @@ class Renderer(object):
             self.render_state = RenderState.MENU
 
         if self.render_state is RenderState.PLAY:
-            if self.start_time is None:
+            if pyxel.btn(glfw.KEY_SPACE):
                 self.track.participants[0].accelerate()
+            else:
+                self.track.participants[0].stop_accelerating()
+            if self.start_time is None:
                 self.start_time = datetime.now()
                 self.prev_time = self.start_time
             else:
@@ -105,7 +110,7 @@ class Renderer(object):
                 self.prev_time = now
 
                 # Update the track using the delta
-                self.track.update_all()
+                self.track.update_all(dt.total_seconds())
 
     def draw(self):
         pyxel.cls(7) # Clear screen, set background to white
@@ -121,6 +126,26 @@ class Renderer(object):
             pass
         elif self.render_state is RenderState.PLAY:
 
+            for x, y in self.stored:
+                pyxel.circ(x, y, 1, 3)
+
+            # Car 1
             pyxel.text(110, 10, 'GO GO GO!', 0)
-            print(physics.calculate_posn(self.track.participants[0]))
+            x, y = physics.calculate_posn(self.track.participants[0])
+            x = x + 128
+            y = 72 - y
+            self.stored.append((x, y))
+            pyxel.circ(x, y, 2, 0)
+            pyxel.text(10, 10, f'{self.track.participants[0].speed}', 0)
+
+            # Car 2
+            x, y = physics.calculate_posn(self.track.participants[1])
+            x = x + 128
+            y = 72 - y
+            pyxel.circ(x, y, 2, 1)
+            self.stored.append((x, y))
+            pyxel.text(10, 20, f'{self.track.participants[1].speed}', 0)
+
+
+
 
