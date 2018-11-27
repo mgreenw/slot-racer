@@ -3,26 +3,29 @@
 # https://www.desmos.com/calculator/fgf5a3kiah
 # https://www.desmos.com/calculator/xbqhrdlyea
 # https://www.desmos.com/calculator/1ohpl1uzqj
+# https://www.desmos.com/calculator/sfrbqcwszh
 import math
 
-WIDTH = 4.0
-HEIGHT = 2.0
-MAX_SPEED = .5
-TIME_STEP = 1.0
-ACCELLERATION = .1
-
-
 SOCKET_WIDTH = .5
-TRACK_WIDTH = 20
-BIG_WIDTH = TRACK_WIDTH / 2.0 + 2.0 * math.sqrt(2) * TRACK_WIDTH
-SMALL_WIDTH = BIG_WIDTH - 4.0 * SOCKET_WIDTH
-# c = SMALL_WIDTH / (SMALL_WIDTH + BIG_WIDTH)
+TRACK_WIDTH = 40.0
+MAX_SPEED = .5
+BIG_WIDTH = TRACK_WIDTH / 2.0 + 2.0 * math.sqrt(2) * SOCKET_WIDTH
+SMALL_WIDTH = BIG_WIDTH - 4.0 * SOCKET_WIDTH - 4.0 * math.sqrt(2) * SOCKET_WIDTH
+RATIO = SMALL_WIDTH / (SMALL_WIDTH + BIG_WIDTH)
+ACCELLERATION = 1
+TIMESTEP = .015
+ACCELLERATION_CONST = ACCELLERATION * TIMESTEP
 
 
-def falling(d, speed):
-    x_comp, y_comp = math.cos(d / WIDTH) * .5, math.cos(d / HEIGHT) * .3
-    threshold = math.sqrt(x_comp << 2 + y_comp << 2)
-    return speed >= threshold
+def falling(car):
+    d = car.distance
+    if d < RATIO:
+        c = BIG_WIDTH / (SMALL_WIDTH + BIG_WIDTH)
+        threshold = 1 - (c * math.cos(scale_small_loop(d, c)))
+    else:
+        c = SMALL_WIDTH / (SMALL_WIDTH + BIG_WIDTH)
+        threshold = 1 - (c * math.cos(scale_big_loop(d, c)))
+    return car.speed, threshold
 
 def colliding(d):
     return False
@@ -34,10 +37,10 @@ def calculate_posn(car):
     curr_width, scale_fn = ((BIG_WIDTH, scale_big_loop) if d >= c
         else (SMALL_WIDTH, scale_small_loop))
     x = (((curr_width * math.cos(scale_fn(d, c)))
-        / (1 + (math.sin(scale_fn(d, c)) << 2)))
-        + 2.0 * math.sqrt() * SOCKET_WIDTH)
+        / (1 + math.pow(math.sin(scale_fn(d, c)), 2))
+        + 2.0 * math.sqrt(2) * SOCKET_WIDTH))
     y = ((curr_width * math.sin(scale_fn(d, c)) * math.cos(scale_fn(d, c)))
-        / (1 + (math.sin(scale_fn(d, c)) << 2)))
+        / (1 + math.pow(math.sin(scale_fn(d, c)), 2)))
     return x, y
 
 def scale_small_loop(d, c):
@@ -46,13 +49,19 @@ def scale_small_loop(d, c):
 def scale_big_loop(d, c):
     return math.pi / 2.0 + ((d - c) * math.pi) / (1 - c)
 
-def calculate_velocity(d, speed, accellerating):
+def calculate_velocity(speed, accellerating):
     if accellerating:
-        x = math.cos(d / WIDTH) * .5 * speed
-        y = math.cos(d / HEIGHT) * .3 * speed
+        return min(speed + ACCELLERATION_CONST, MAX_SPEED)
     else:
-        return d
-    return min(speed, MAX_SPEED)
+        return max(speed - ACCELLERATION_CONST, 0)
 
-def car_timestep(car):
-    return car.speed, car.distance
+def calculate_distance(distance, speed):
+    return distance + (speed * TIMESTEP) #TODO: temporary, might want to use method similar to in `falling`
+
+def car_timestep(car, accellerating):
+    car.speed = calculate_velocity(car.speed, accellerating)
+    if falling(car):
+        raise Exception("car falling")
+    else:
+        car.distance = calculate_distance(car.distance, car.speed)
+    return car
