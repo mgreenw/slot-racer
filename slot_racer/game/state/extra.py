@@ -24,7 +24,7 @@ class FallData(object):
 
 class Event(object):
     """An Event is a change in whether we are accelerating or not
-    
+
     This module is used simply for encapsulating the various details we require
     of each event. These are defined as follows:
     - event_type: A character representing whether we accelerated or stopped
@@ -50,5 +50,3 @@ def log(test, msg):
     report += "\033[92mPASSED" if all(test) else "\033[91mFAILED"
     report += "\033[0m"
     print("{}\n{}".format(report, msg))
-
-

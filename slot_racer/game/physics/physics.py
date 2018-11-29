@@ -3,7 +3,7 @@
 
 import math
 
-SOCKET_WIDTH = 1
+SOCKET_WIDTH = 2.5
 TRACK_WIDTH = 200.0
 MAX_SPEED = .5
 BIG_WIDTH = TRACK_WIDTH / 2.0 + 2.0 * math.sqrt(2) * SOCKET_WIDTH
@@ -22,9 +22,6 @@ def falling(car):
         threshold = 1 + (c * math.cos(scale_big_loop(d, c)))
     return car.speed > threshold
 
-def colliding(d):
-    return False
-
 def calculate_posn(car):
     c = RATIO if car.id == 0 else 1 - RATIO
     d = car.distance
@@ -33,7 +30,7 @@ def calculate_posn(car):
     x = (((curr_width * math.cos(scale_fn(d, c)))
         / (1 + math.pow(math.sin(scale_fn(d, c)), 2))
         + 2.0 * math.sqrt(2) * SOCKET_WIDTH))
-    y = ((curr_width * math.sin(scale_fn(d, c)) * math.cos(scale_fn(d, c)))
+    y = - ((curr_width * math.sin(scale_fn(d, c)) * math.cos(scale_fn(d, c)))
         / (1 + math.pow(math.sin(scale_fn(d, c)), 2)))
     return x, y
 
