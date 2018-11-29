@@ -3,13 +3,14 @@
 
 import math
 
+
 SOCKET_WIDTH = 3
 TRACK_WIDTH = 200.0
-MAX_SPEED = .5
+MAX_SPEED = 0.75
 BIG_WIDTH = TRACK_WIDTH / 2.0 + 2.0 * math.sqrt(2) * SOCKET_WIDTH
 SMALL_WIDTH = BIG_WIDTH - 4.0 * SOCKET_WIDTH - 4.0 * math.sqrt(2) * SOCKET_WIDTH
 RATIO = SMALL_WIDTH / (SMALL_WIDTH + BIG_WIDTH)
-ACCELLERATION = 1
+ACCELLERATION = 0.2
 
 
 def falling(car):
@@ -53,5 +54,5 @@ def calculate_distance(distance, speed, timestep):
 
 def car_timestep(car, timestep):
     speed = calculate_speed(car.speed, car.is_accelerating, timestep)
-    distance = calculate_distance(car.distance, car.speed, timestep)
+    distance = calculate_distance(car.distance % 1.0, car.speed, timestep)
     return speed, distance
