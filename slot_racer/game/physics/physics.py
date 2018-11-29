@@ -3,7 +3,8 @@
 
 import math
 
-SOCKET_WIDTH = 2.5
+
+SOCKET_WIDTH = 3
 TRACK_WIDTH = 200.0
 MAX_SPEED = 0.75
 BIG_WIDTH = TRACK_WIDTH / 2.0 + 2.0 * math.sqrt(2) * SOCKET_WIDTH
@@ -16,31 +17,29 @@ def falling(car):
     d = car.distance
     if d < RATIO:
         c = 1 - RATIO
-        threshold = 1 - (c * math.cos(scale_small_loop(d, c)))
+        threshold = 1 - (c * math.cos(scale_first_loop(d, c)))
     else:
         c = RATIO
-        threshold = 1 + (c * math.cos(scale_big_loop(d, c)))
+        threshold = 1 + (c * math.cos(scale_second_loop(d, c)))
     return car.speed > threshold
-
-def colliding(d):
-    return False
 
 def calculate_posn(car):
     c = RATIO if car.id == 0 else 1 - RATIO
-    d = car.distance
-    curr_width, scale_fn = ((BIG_WIDTH, scale_big_loop) if d >= c
-        else (SMALL_WIDTH, scale_small_loop))
+    d = car.distance % 1
+    scale_fn = scale_second_loop if (d >= c) else scale_first_loop
+    curr_width = BIG_WIDTH if (d >= c) ^ (car.id == 1) else SMALL_WIDTH
+    added_multiple = 1.0 if car.id == 0 else -1.0
     x = (((curr_width * math.cos(scale_fn(d, c)))
         / (1 + math.pow(math.sin(scale_fn(d, c)), 2))
-        + 2.0 * math.sqrt(2) * SOCKET_WIDTH))
+        + added_multiple * 2.0 * math.sqrt(2) * SOCKET_WIDTH))
     y = ((curr_width * math.sin(scale_fn(d, c)) * math.cos(scale_fn(d, c)))
         / (1 + math.pow(math.sin(scale_fn(d, c)), 2)))
     return x, y
 
-def scale_small_loop(d, c):
+def scale_first_loop(d, c):
     return (-math.pi) / 2.0 + (d * math.pi) / c
 
-def scale_big_loop(d, c):
+def scale_second_loop(d, c):
     return math.pi / 2.0 + ((d - c) * math.pi) / (1 - c)
 
 def calculate_speed(speed, accellerating, timestep):
