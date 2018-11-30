@@ -22,20 +22,6 @@ HEIGHT = 144
 # 2. import the state and begin to work with it
 # 3. Look into the websocket stuff
 
-import asyncio
-import websockets
-
-async def hello():
-    async with websockets.connect(
-            'ws://localhost:8765') as websocket:
-        name = input("What's your name? ")
-
-        await websocket.send(name)
-        print(f"> {name}")
-
-        greeting = await websocket.recv()
-        print(f"< {greeting}")
-
 class Button(object):
     def __init__(self, text, x, y, w, h, background_color, text_color):
         self.text = text
