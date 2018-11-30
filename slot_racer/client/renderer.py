@@ -129,23 +129,27 @@ class Renderer(object):
             for x, y in self.stored:
                 pyxel.circ(x, y, 1, 3)
 
-            # Car 1
             pyxel.text(110, 10, 'GO GO GO!', 0)
-            x, y = physics.calculate_posn(self.track.participants[0])
-            x = x + 128
-            y = 72 - y
-            self.stored.append((x, y))
-            pyxel.circ(x, y, 2, 0)
-            pyxel.text(10, 10, f'{self.track.participants[0].speed}', 0)
 
-            # Car 2
-            x, y = physics.calculate_posn(self.track.participants[1])
-            x = x + 128
-            y = 72 - y
-            pyxel.circ(x, y, 2, 1)
-            self.stored.append((x, y))
-            pyxel.text(10, 20, f'{self.track.participants[1].speed}', 0)
+            i = 0
+            for car in self.track.participants:
+                x, y = car.get_posn()
+                x = x + 128
+                y = 72 - y
+                self.stored.append((x, y))
+                pyxel.circ(x, y, 2, i)
+                pyxel.text(10, 10, f'{car.speed}', 0)
+                # print(i, car.fallen)
+                if car.fallen:
+                    self.explode(x, y, car)
+                    car.speed = 0
+                i += 1
 
+                # self.explode(128, 72)
 
-
-
+    def explode(self, x, y, car):
+        explosion_time = car.fallen.explosion_time
+        step = int(explosion_time * 16)
+        w, h = car.fallen.img_sizes[step]
+        pyxel.image(0).load(0, 0, 'slot_racer/client/explosion-{}.png'.format(step))
+        pyxel.blt(x - (w / 2), y - (h / 2), 0, 0, 0, w, h)
