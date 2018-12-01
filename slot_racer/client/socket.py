@@ -1,49 +1,45 @@
+# Author: Max Greenwald, Pulkit Jain
+# 11/30/2018
+#
+# Module to create a simple interface for persistent socket connections
+
+# package imports
 import asyncio
 import websockets
-from threading import Thread
 import concurrent.futures
 
-# spawn a thread that works as the listener
 
-async def consumer(message):
-    print(message)
+async def start():
+    """Creates a socket and initiates and runs it
+    :return: a coroutine, use asyncio.run(client.start()) to make this work
+    """
+    skt = Socket()
+    skt.connection = await websockets.connect(f'ws://{skt.host}:{skt.port}')
+    await skt.handler(None)
+    return skt
 
-async def consumer_handler(websocket, path):
-    while True:
-        message = await websocket.recv()
-        await consumer(message)
-
-async def producer():
-    await asyncio.sleep(1)
-    return "ping"
-
-async def producer_handler(websocket, path):
-    while True:
-        message = await producer()
-        print("sending" + message)
-        await websocket.send(message)
-
-async def handler(websocket, path):
-    print('handler')
-    consumer_task = asyncio.ensure_future(
-        consumer_handler(websocket, path))
-    producer_task = asyncio.ensure_future(
-        producer_handler(websocket, path))
-    done, pending = await asyncio.wait(
-        [consumer_task, producer_task],
-        return_when=asyncio.FIRST_COMPLETED,
-    )
-    print("done")
-    for task in pending:
-        task.cancel()
 
 class Socket(object):
-    @classmethod
-    async def connect(cls, host='localhost', port=8765):
-        self = Socket()
-        self.connection = await websockets.connect(f'ws://{host}:{port}')
-        await handler(self.connection, None)
-        return self
+    """Our interface to manage a persistent socket connection
+
+    It is defined by the following attributes:
+    - host: string representing the host
+    - port: integer representing what port number to connect to
+    - connection: the actual websocket
+
+    It is defined by the following behaviors:
+    - send(message): sends the messages
+    - receive(): TODO
+    - handler(path): handles the message consumption and production
+    - consumer(message): consumes the passed in message
+    - consumer_handler(path): handles consumption
+    - producer(): produces messages
+    - producer_handler(path): handles production
+    """
+    def __init__(self, host='localhost', port=8765):
+        self.host       = host
+        self.port       = port
+        self.connection = None
 
     async def send(self, message):
         await self.connection.send(message)
@@ -54,14 +50,40 @@ class Socket(object):
     #         print("Message")
     #         print(message)
 
-if __name__ == '__main__':
-    socket = asyncio.run(Socket.connect())
+    async def handler(self, path):
+        print('handler')
+        consumer_task = asyncio.ensure_future(
+            self.consumer_handler(path))
+        producer_task = asyncio.ensure_future(
+            self.producer_handler(path))
+        done, pending = await asyncio.wait(
+            [consumer_task, producer_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        print("done")
+        for task in pending:
+            task.cancel()
 
-# I want to run
-async def connect():
-    connection = await websockets.connect('ws://localhost:8765')
-    return connection
+    async def consumer(self, message):
+        print(message)
 
+    async def consumer_handler(self, path):
+        while True:
+            message = await self.connection.recv()
+            await self.consumer(message)
+
+    async def producer(self):
+        name = input("Enter message: ")
+        return name
+
+    async def producer_handler(self, path):
+        while True:
+            message = await self.producer()
+            print(f'{message}')
+            await self.send(message)
+
+
+# pending work
 def wrap_future(asyncio_future):
     def done_callback(af, cf):
         try:
