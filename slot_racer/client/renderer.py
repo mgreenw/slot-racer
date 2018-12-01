@@ -138,14 +138,11 @@ class Renderer(object):
                 y = 72 - y
                 self.stored.append((x, y))
                 pyxel.circ(x, y, 2, i)
-                pyxel.text(10, 10, f'{car.speed}', 0)
-                # print(i, car.fallen)
+                pyxel.text(10, 10 * (i + 1), f'{car.speed}', 0)
                 if car.fallen:
                     self.explode(x, y, car)
                     car.speed = 0
                 i += 1
-
-                # self.explode(128, 72)
 
     def explode(self, x, y, car):
         explosion_time = car.fallen.explosion_time
