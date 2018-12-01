@@ -34,21 +34,3 @@ class Socket(object):
         while True:
             message = await outgoing_message()
             await self.connection.send(message)
-
-async def empty_receive(message):
-    pass
-
-async def empty_outgoing():
-    while True:
-        await asyncio.sleep(10)
-
-def _run_socket(receive_message, outgoing_message, host, port):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    socket = asyncio.get_event_loop().run_until_complete(Socket.connect(host, port))
-    asyncio.get_event_loop().run_until_complete(socket.run(receive_message, outgoing_message))
-
-def run_socket(receive_message=empty_receive, outgoing_message=empty_outgoing, host='localhost', port=8765):
-    socket = threading.Thread(target=_run_socket, args=[receive_message, outgoing_message, host, port])
-    socket.start()
-    return socket
