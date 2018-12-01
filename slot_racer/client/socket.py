@@ -1,74 +1,48 @@
 import asyncio
 import websockets
-from threading import Thread
-import concurrent.futures
-
-# spawn a thread that works as the listener
-
-async def consumer(message):
-    print(message)
-
-async def consumer_handler(websocket, path):
-    while True:
-        message = await websocket.recv()
-        await consumer(message)
-
-async def producer():
-    await asyncio.sleep(1)
-    return "ping"
-
-async def producer_handler(websocket, path):
-    while True:
-        message = await producer()
-        print("sending" + message)
-        await websocket.send(message)
-
-async def handler(websocket, path):
-    print('handler')
-    consumer_task = asyncio.ensure_future(
-        consumer_handler(websocket, path))
-    producer_task = asyncio.ensure_future(
-        producer_handler(websocket, path))
-    done, pending = await asyncio.wait(
-        [consumer_task, producer_task],
-        return_when=asyncio.FIRST_COMPLETED,
-    )
-    print("done")
-    for task in pending:
-        task.cancel()
+import threading
 
 class Socket(object):
     @classmethod
-    async def connect(cls, host='localhost', port=8765):
+    async def connect(cls, host, port):
         self = Socket()
         self.connection = await websockets.connect(f'ws://{host}:{port}')
-        await handler(self.connection, None)
         return self
 
-    async def send(self, message):
-        await self.connection.send(message)
+    async def run(self, receive_message, outgoing_message):
+        self.consumer_task = asyncio.ensure_future(self._receive_handler(receive_message))
+        self.producer_task = asyncio.ensure_future(self._send_handler(outgoing_message))
+        done, pending = await asyncio.wait(
+            [self.consumer_task, self.producer_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for task in pending:
+            task.cancel()
 
-    # async def receive(self):
-    #     print("receiving")
-    #     async for message in self.connection:
-    #         print("Message")
-    #         print(message)
+    async def _receive_handler(self, receive_message):
+        while True:
+            message = await self.connection.recv()
+            await receive_message(message)
 
-if __name__ == '__main__':
-    socket = asyncio.run(Socket.connect())
+    async def _send_handler(self, outgoing_message):
+        while True:
+            message = await outgoing_message()
+            await self.connection.send(message)
 
-# I want to run
-async def connect():
-    connection = await websockets.connect('ws://localhost:8765')
-    return connection
+async def empty_receive(message):
+    pass
 
-def wrap_future(asyncio_future):
-    def done_callback(af, cf):
-        try:
-            cf.set_result(af.result())
-        except Exception as e:
-            cf.set_exception(e)
+async def empty_outgoing():
+    while True:
+        await asyncio.sleep(10)
 
-    concur_future = concurrent.futures.Future()
-    asyncio_future.add_done_callback(lambda f: done_callback(f, cf=concur_future))
-    return concur_future
+def _run_socket(receive_message, outgoing_message, host, port):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    socket = asyncio.get_event_loop().run_until_complete(Socket.connect(host, port))
+    asyncio.get_event_loop().run_until_complete(socket.run(receive_message, outgoing_message))
+
+def run_socket(receive_message=empty_receive, outgoing_message=empty_outgoing, host='localhost', port=8765):
+    socket = threading.Thread(target=_run_socket, args=[receive_message, outgoing_message, host, port])
+    socket.start()
+    return socket
