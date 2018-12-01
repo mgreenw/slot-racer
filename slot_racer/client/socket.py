@@ -1,3 +1,9 @@
+# Author: Max Greenwald, Pulkit Jain
+# 11/30/2018
+#
+# Module to create a simple interface for persistent socket connections
+
+# package imports
 import asyncio
 import websockets
 import threading

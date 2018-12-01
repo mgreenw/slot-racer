@@ -48,8 +48,8 @@ class RenderState(Enum):
     PLAY = 3
 
 class Renderer(object):
-    def __init__(self):
-        self.track = state.Track(num_participants=2)
+    def __init__(self, track):
+        self.track = track
         self.stored = []
 
         # Init pyxel
