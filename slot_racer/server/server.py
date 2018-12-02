@@ -4,6 +4,7 @@
 # Module to create a Server and its associated behaviours
 
 # package imports
+import re
 import asyncio
 import websockets
 from .protocol import get_protocol
@@ -23,9 +24,13 @@ class Server(object):
           messages to functions
     - state: the state of the server defined below in ServerState
 
+    A brief guide to our protocol [for more information, go to protocol.py]:
+    - ping: returns the latency
+    - cars: sends out a list of all the cars
+
     It is defined by the following behaviours:
     - start_game(): starts a socket connection that clients can connect to
-    - update_all(): updates all the clients
+    - update_all(update): updates all the clients
     - listener(websocket, path): listens for messages from clients
 
     TODO: Consider creating a Monitor for max_id and client_skts
@@ -41,15 +46,15 @@ class Server(object):
 
     def start_game(self):
         self.socket = websockets.serve(self.listener, self.host, self.port)
-        print(f'Listening at {self.host}:{self.port}')
+        print(f'Listening at {self.host}:{self.port}...')
         asyncio.ensure_future(self.update_all())
         asyncio.get_event_loop().run_until_complete(self.socket)
         asyncio.get_event_loop().run_forever()
 
-    async def update_all(self):
+    async def update_all(self, update='upda'):
         while True:
             for skt in self.state.clients:
-                await skt.send(f'UPDATE')
+                await skt.send(update)
             await asyncio.sleep(self.update_time)
 
     async def listener(self, skt, path):
@@ -58,19 +63,25 @@ class Server(object):
         - This function will be used to enforce our protocol
         - As soon as a client joins the game, we start our pinging to establish
           the latency
+        - We are only going to use 4 letter codes to define our protocol
         """
         try:
-            latency = await self.protocol['ping'](skt)
-            self.state.add_client(skt, latency)
+            print(self.state.clients)
+            if skt not in self.state.clients:
+                latency = await self.protocol['pong'](skt)
+                self.state.add_client(skt, latency)
+                await self.update_all(f'cars {str(self.state.get_ids())}')
             async for message in skt:
-                if message in self.protocol:
-                    self.protocol[message]()
+                compiled_message = message[:4]
+                if compiled_message in self.protocol:
+                    self.protocol[compiled_message](self, message)
                 await asyncio.sleep(self.listen_time)
         except websockets.exceptions.ConnectionClosed as e:
             print(f'Connection with Client '
                   f'#{self.state.clients[skt][0]} closed!')
         finally:
             self.state.remove_client(skt)
+            await self.update_all(f'cars {str(self.state.get_ids())}')
 
 
 class ServerState(object):
@@ -98,5 +109,8 @@ class ServerState(object):
     def remove_client(self, client_socket):
         self.track.remove_participant(self.clients[client_socket][0])
         del self.clients[client_socket]
+
+    def get_ids(self):
+        return [i[0] for i in self.clients.values()]
 
 

@@ -21,7 +21,7 @@ async def ping(ws):
 
 def get_protocol():
     protocol = dict()
-    protocol['ping'] = ping
+    protocol['pong'] = ping
     return protocol
 
 

@@ -21,6 +21,11 @@ class Client(object):
     - id: the ID it has on the track in the server
     - websocket: the connection to the server
 
+    A brief guide to our protocol [for more information, go to protocol.py]:
+    - ping: returns the latency
+    - cars: gets a list of all the car_ids
+    - upda: update - basic message passing for debugging purposes
+
     It is defined by the following behaviours:
     - _run_socket(host, port): Internal function that is spawned on a new thread
           to create a persistent websocket connection to the server
@@ -44,12 +49,13 @@ class Client(object):
             start(self, host, port, self.receive_message, self.outgoing_message))
 
     def receive_message(self, message):
+        print(message)
         self.protected_q.put(message)
 
     def outgoing_message(self):
         message = self.protected_q.get()
         if message in self.protocol:
-            return self.protocol[message]()
+            return self.protocol[message](self, message)
 
     def join_game(self, host='localhost', port=8765):
         self.socket_thread = \
