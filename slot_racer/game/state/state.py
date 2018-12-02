@@ -113,11 +113,27 @@ class Track(object):
         self.lap_distance = lap_distance
         self.model        = model
 
-    def add_participant(self, car):
+    def add_participant(self, car, idx=-1):
         if car not in self.participants:
-            car.id = len(self.participants)
+            if 0 <= idx and \
+                    not any(map(lambda x: idx == x.id, self.participants)):
+                car.id = idx
+            else:
+                car.id = len(self.participants)
             self.participants.append(car)
         return car.id
+
+    def remove_participant(self, idx):
+        car = self.get_car_by_id(idx)
+        if car:
+            self.participants.remove(car)
+        else:
+            raise ValueError("Car #{} is not on the Track!".format(idx))
+
+    def get_car_by_id(self, idx):
+        for car in self.participants:
+            if car.id == idx:
+                return car
 
     def update_all(self, timestep):
         if self.participants:

@@ -1,3 +1,6 @@
-from slot_racer import server
+from slot_racer import Server
 
-server.start()
+x = Server()
+x.start_game()
+
+
