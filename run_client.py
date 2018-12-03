@@ -1,4 +1,7 @@
-from slot_racer import client
+from slot_racer.client import Client
+import asyncio
+import threading
 
-renderer = client.Renderer()
-renderer.start()
+x = Client()
+x.join_game()
+

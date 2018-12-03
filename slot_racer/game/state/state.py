@@ -64,6 +64,9 @@ class Car(object):
         self.is_accelerating = False
         self.prev_events.append(Event(self.STOP_ACCELERATING))
 
+    def get_posn(self):
+        return physics.calculate_posn(self)
+
     def fall(self, speed, distance):
         self.fallen = FallData(speed, distance)
 
@@ -78,9 +81,12 @@ class Car(object):
         if physics.falling(self):
             self.speed = 0
             self.fall(speed, distance)
+        elif self.fallen:
+            self.fallen.explosion_time += timestep
+            if self.fallen.explosion_time > 1:
+                self.fallen = None
         else:
             self.speed, self.distance = speed, distance
-            self.fallen               = None
 
 
 class Track(object):
@@ -113,11 +119,27 @@ class Track(object):
         self.lap_distance = lap_distance
         self.model        = model
 
-    def add_participant(self, car):
+    def add_participant(self, car, idx=-1):
         if car not in self.participants:
-            car.id = len(self.participants)
+            if 0 <= idx and \
+                    not any(map(lambda x: idx == x.id, self.participants)):
+                car.id = idx
+            else:
+                car.id = len(self.participants)
             self.participants.append(car)
         return car.id
+
+    def remove_participant(self, idx):
+        car = self.get_car_by_id(idx)
+        if car:
+            self.participants.remove(car)
+        else:
+            raise ValueError("Car #{} is not on the Track!".format(idx))
+
+    def get_car_by_id(self, idx):
+        for car in self.participants:
+            if car.id == idx:
+                return car
 
     def update_all(self, timestep):
         if self.participants:

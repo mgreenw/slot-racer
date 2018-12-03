@@ -14,14 +14,18 @@ ACCELLERATION = 0.2
 
 
 def falling(car):
-    d = car.distance
-    if d < RATIO:
-        c = 1 - RATIO
-        threshold = 1 - (c * math.cos(scale_first_loop(d, c)))
+    return car.speed > threshold(car)
+
+def threshold(car):
+    d = car.distance % 1
+    switch = RATIO if car.id == 0 else 1 - RATIO
+    c, scale_fn = (switch, scale_second_loop) if d >= switch else ((1 - switch), scale_first_loop)
+    if (d < switch):
+        threshold = 1 - (c * math.cos(scale_fn(d, switch)))
     else:
-        c = RATIO
-        threshold = 1 + (c * math.cos(scale_second_loop(d, c)))
-    return car.speed > threshold
+        threshold = 1 + (c * math.cos(scale_fn(d, switch)))
+    return threshold
+
 
 def calculate_posn(car):
     c = RATIO if car.id == 0 else 1 - RATIO
@@ -54,5 +58,5 @@ def calculate_distance(distance, speed, timestep):
 
 def car_timestep(car, timestep):
     speed = calculate_speed(car.speed, car.is_accelerating, timestep)
-    distance = calculate_distance(car.distance % 1.0, car.speed, timestep)
+    distance = calculate_distance(car.distance, car.speed, timestep)
     return speed, distance
