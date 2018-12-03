@@ -82,18 +82,37 @@ def test3():
 
 
 def test4():
-    """Contingent on physics fixing up collisions
+    """Test 4: Removing car from Track
     """
-    # check if updates on all cars works if car at edge of track (last car
-    # in list) updates so that it falls off the track [[ only outermost car
-    # should fall off track ]]
+    track, match = Track(num_participants=INIT_LEN), []
+    def_id = 6
+
+    track.remove_participant(def_id)
+    for i in track.participants:
+        match.append(i.id != def_id)
+
+    try:
+        track.remove_participant(def_id)
+        match.append(False)
+    except:
+        match.append(True)
+
+    log(match, test4.__doc__)
 
 
 def test5():
-    """Contingent on physics fixing up collisions
+    """Test 5: Adding car to track by ID
     """
-    # check if updates on all cars works if innermost car falls off track
-    # [[ multiple cars should fall off track if collision ]]
+    track, match = Track(num_participants=INIT_LEN), []
+    def_id, def_id1 = 16, 2
+    matching_ids = [0, 1, 3, 4, 5, 6, 7, 8, 9, 16]
+
+    track.add_participant(Car(def_id-1), def_id)
+    track.remove_participant(def_id1)
+    for i in range(len(track.participants)):
+        match.append(track.participants[i].id == matching_ids[i])
+
+    log(match, test5.__doc__)
 
 
 def run():
@@ -102,3 +121,5 @@ def run():
     test1()
     test2()
     test3()
+    test4()
+    test5()
