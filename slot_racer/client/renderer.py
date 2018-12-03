@@ -48,7 +48,8 @@ class RenderState(Enum):
     PLAY = 3
 
 class Renderer(object):
-    def __init__(self, track):
+    def __init__(self, track, client):
+        self.client = client
         self.track = track
         self.stored = []
 
@@ -57,7 +58,7 @@ class Renderer(object):
         pyxel.init(WIDTH - 1 , HEIGHT)
         pyxel.mouse(True)
 
-        self.render_state = RenderState.PLAY
+        self.render_state = RenderState.MENU
 
         # Setup buttons
         self.play_button = Button('Play', 60, 60, 30, 15, 4, 9)
@@ -73,6 +74,7 @@ class Renderer(object):
         self.render_state = RenderState.LOBBY
 
     def switch_to_play(self):
+        self.client.send('start_game')
         self.render_state = RenderState.PLAY
 
     def start(self):
@@ -81,6 +83,10 @@ class Renderer(object):
     def update(self):
         if not isinstance(self.render_state, RenderState):
             self.render_state = RenderState.MENU
+
+        if self.render_state is RenderState.MENU:
+            if pyxel.btn(glfw.KEY_ENTER):
+                self.switch_to_play()
 
         if self.render_state is RenderState.PLAY:
             if pyxel.btn(glfw.KEY_SPACE):

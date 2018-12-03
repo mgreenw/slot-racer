@@ -72,13 +72,14 @@ class Socket(object):
         self.swap_time  = 0.01
         self.inbox      = Queue()
         self.outbox     = Queue()
+        self.running    = True
 
     def raise_error_uninit(self):
         if not self.connection:
             raise Exception("Socket not started. \n"
                             "USAGE: asyncio.run(socket.start(...) to use this.")
 
-    async def run(self, ):
+    async def run(self):
         self.connection = await websockets.connect(f'ws://{self.host}:{self.port}')
         outbox_thread = threading.Thread(target=self._send_handler)
         outbox_thread.start()
@@ -100,7 +101,7 @@ class Socket(object):
 
     def _send_handler(self):
         self.raise_error_uninit()
-        while True:
+        while self.running:
             message = self.outbox.get()
             asyncio.run(self.connection.send(message))
 

@@ -8,14 +8,14 @@ import time
 from statistics import mean
 from datetime import datetime
 import json
+from ..communication import Serializer
 
-ping_message = json.dumps(dict(
-    type='ping',
-    data=None
-))
+serializer = Serializer()
+
+ping_message = serializer.compose('ping', None)
 
 async def ping(ws):
-    """Returns the max of four roundrtip times between client and server"""
+    """Returns the average time of a ping between the client and the server"""
     repeat, times = 50, []
     for _ in range(repeat):
         start = datetime.now()
@@ -23,7 +23,7 @@ async def ping(ws):
         await ws.recv()
         end = datetime.now()
         times.append((end - start).total_seconds())
-    return mean(times)
+    return mean(times) / 2
 
 
 def get_protocol():

@@ -40,10 +40,10 @@ class Client(object):
     def __init__(self):
         self.id            = None
         self.socket        = None
-        self.socket_thread = None
-        self.renderer      = Renderer(state.Track())
+        self.renderer      = Renderer(state.Track(), self)
         self.protocol      = get_protocol()
         self.serializer    = Serializer()
+        self.running       = True
 
         self.renderer.track.add_participant(state.Car(1))
         self.renderer.track.add_participant(state.Car(2))
@@ -53,18 +53,51 @@ class Client(object):
         asyncio.get_event_loop().run_until_complete(
             start(self.socket))
 
+    def send(self, subject, data=None):
+        message = self.serializer.compose(subject, data)
+        self.socket.outbox.put(message)
+
     def _check_inbox(self):
-        while True:
+        while self.running:
+            # Block until the client has a new message. Then, handle the message
             message = self.serializer.read(self.socket.inbox.get())
-            print('Client received message!')
-            print(message)
-            self.socket.outbox.put(self.serializer.compose('cars_response', message.subject))
+            self.handle_message(message)
 
     def join_game(self, host='localhost', port=8765):
         self.socket = Socket(host, port)
-        self.socket_thread = \
-            threading.Thread(target=self._run_socket, args=[host, port])
-        self.socket_thread.start()
+        socket_thread = threading.Thread(target=self._run_socket, args=[host, port])
+        socket_thread.start()
         inbox_thread = threading.Thread(target=self._check_inbox)
         inbox_thread.start()
         self.renderer.start()
+
+        # At this point, the renderer has quit. We want to signal the other
+        # threads to end at this point
+        self.running = False
+        self.socket.running = False
+        inbox_thread.join()
+        socket_thread.join()
+
+    # Message responses
+    def ping(self, data):
+        self.socket.outbox.put(self.serializer.compose('pong', None))
+
+    def cars(self, data):
+        me, all_cars = data
+        print(f'Got new car list!\nMy id: {me}\nList: {all_cars}')
+
+    def begin_countdown(self, time):
+        print(f'Begin countdown! {time}')
+
+    def handle_message(self, message):
+        subjects = dict(
+            ping=self.ping,
+            cars=self.cars,
+            begin_countdown=self.begin_countdown
+        )
+
+        handler = subjects.get(message.subject, None)
+        if handler is None:
+            print(f'Receeived unknown message subject: {message.subject}')
+        else:
+            handler(message.data)
