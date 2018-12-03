@@ -4,14 +4,11 @@
 # Module to create a Server and its associated behaviours
 
 # package imports
-import re
 import asyncio
 import websockets
-from .protocol import get_protocol
 from ..game import Car, Track
-from collections import namedtuple
-import json
 from ..communication import Serializer
+
 
 class Server(object):
     """Server defines how a server interacts with its clients
@@ -43,7 +40,6 @@ class Server(object):
         self.server      = None
         self.update_time = 0.01
         self.listen_time = 0.01
-        self.protocol    = get_protocol()
         self.state       = ServerState()
         self.serializer  = Serializer()
 

@@ -6,11 +6,9 @@
 # package imports
 import asyncio
 import threading
-import json
 from ..game import state
 from .renderer import Renderer
 from .socket import start, Socket
-from .protocol import get_protocol
 from ..communication import Serializer
 
 
@@ -18,15 +16,14 @@ class Client(object):
     """Client defines how each client can interact with the server
 
     It is defined by the following attributes:
+    - id: the ID it has on the track in the server
+    - socket: the connection to the server
     - renderer: the Renderer that the client will use to display the game
                 this also contains the track itself
-    - id: the ID it has on the track in the server
-    - websocket: the connection to the server
-
-    A brief guide to our protocol [for more information, go to protocol.py]:
-    - ping: returns the latency
-    - cars: gets a list of all the car_ids
-    - upda: update - basic message passing for debugging purposes
+    - serializer: converts our data to a format we can use to communicate
+    - running: boolean representing the state
+    - my_car: my car
+    - car_ids: ids of all cars on the track
 
     It is defined by the following behaviours:
     - _run_socket(host, port): Internal function that is spawned on a new thread
@@ -38,19 +35,30 @@ class Client(object):
           game
     """
     def __init__(self):
-        self.id            = None
-        self.socket        = None
-        self.renderer      = Renderer(state.Track(), self)
-        self.protocol      = get_protocol()
-        self.serializer    = Serializer()
-        self.running       = True
-        self.my_car        = None
-        self.car_ids       = None
+        self.id         = None
+        self.socket     = None
+        self.renderer   = Renderer(state.Track(), self)
+        self.serializer = Serializer()
+        self.running    = True
+        self.my_car     = None
+        self.car_ids    = None
 
-    def _run_socket(self, host, port):
+    def _run_socket(self):
         asyncio.set_event_loop(asyncio.new_event_loop())
-        asyncio.get_event_loop().run_until_complete(
-            start(self.socket))
+        asyncio.get_event_loop().run_until_complete(start(self.socket))
+
+    def join_game(self, host='localhost', port=8765):
+        self.socket   = Socket(host, port)
+        socket_thread = threading.Thread(target=self._run_socket, args=[])
+        inbox_thread  = threading.Thread(target=self._check_inbox)
+        #      Once setup is complete, start game
+        socket_thread.start()
+        inbox_thread.start()
+        self.renderer.start()
+        #      After renderer is quit, end game
+        self.running = self.socket.running = False
+        inbox_thread.join()
+        socket_thread.join()
 
     def send(self, subject, data=None):
         message = self.serializer.compose(subject, data)
@@ -62,20 +70,18 @@ class Client(object):
             message = self.serializer.read(self.socket.inbox.get())
             self.handle_message(message)
 
-    def join_game(self, host='localhost', port=8765):
-        self.socket = Socket(host, port)
-        socket_thread = threading.Thread(target=self._run_socket, args=[host, port])
-        socket_thread.start()
-        inbox_thread = threading.Thread(target=self._check_inbox)
-        inbox_thread.start()
-        self.renderer.start()
-
-        # At this point, the renderer has quit. We want to signal the other
-        # threads to end at this point
-        self.running = False
-        self.socket.running = False
-        inbox_thread.join()
-        socket_thread.join()
+    def handle_message(self, message):
+        subjects = dict(
+            ping=self.ping,
+            cars=self.cars,
+            begin_countdown=self.begin_countdown
+        )
+        handler = subjects.get(message.subject, None)
+        if handler is None:
+            print(f'Receeived unknown message subject: {message.subject}')
+            print()
+        else:
+            handler(message.data)
 
     # Message responses
     def ping(self, data):
@@ -94,16 +100,4 @@ class Client(object):
         self.renderer.local_car = self.renderer.track.get_car_by_id(self.my_car)
         print(f'Begin countdown! {time}')
 
-    def handle_message(self, message):
-        subjects = dict(
-            ping=self.ping,
-            cars=self.cars,
-            begin_countdown=self.begin_countdown
-        )
 
-        handler = subjects.get(message.subject, None)
-        if handler is None:
-            print(f'Receeived unknown message subject: {message.subject}')
-            print
-        else:
-            handler(message.data)
