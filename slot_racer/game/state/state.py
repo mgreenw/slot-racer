@@ -64,6 +64,9 @@ class Car(object):
         self.is_accelerating = False
         self.prev_events.append(Event(self.STOP_ACCELERATING))
 
+    def get_posn(self):
+        return physics.calculate_posn(self)
+
     def fall(self, speed, distance):
         self.fallen = FallData(speed, distance)
 
@@ -78,9 +81,12 @@ class Car(object):
         if physics.falling(self):
             self.speed = 0
             self.fall(speed, distance)
+        elif self.fallen:
+            self.fallen.explosion_time += timestep
+            if self.fallen.explosion_time > 1:
+                self.fallen = None
         else:
             self.speed, self.distance = speed, distance
-            self.fallen               = None
 
 
 class Track(object):

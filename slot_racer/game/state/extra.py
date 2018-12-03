@@ -20,6 +20,12 @@ class FallData(object):
     def __init__(self, speed, distance):
         self.speed    = speed
         self.distance = distance
+        self.explosion_time = 0
+        self.img_sizes = [
+            (3, 3), (9, 8), (11, 14), (14, 24), (15, 19), (14, 19),
+            (16, 21), (16, 22), (16, 22), (18, 25), (15, 21), (13, 20),
+            (12, 21), (11, 23), (14, 23), (12, 4), (12, 3)
+        ]
 
 
 class Event(object):
