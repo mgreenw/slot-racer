@@ -44,9 +44,8 @@ class Client(object):
         self.protocol      = get_protocol()
         self.serializer    = Serializer()
         self.running       = True
-
-        self.renderer.track.add_participant(state.Car(1))
-        self.renderer.track.add_participant(state.Car(2))
+        self.my_car        = None
+        self.car_ids       = None
 
     def _run_socket(self, host, port):
         asyncio.set_event_loop(asyncio.new_event_loop())
@@ -83,10 +82,16 @@ class Client(object):
         self.socket.outbox.put(self.serializer.compose('pong', None))
 
     def cars(self, data):
-        me, all_cars = data
-        print(f'Got new car list!\nMy id: {me}\nList: {all_cars}')
+        my_car, all_cars = data
+        self.car_ids = all_cars
+        self.my_car = my_car
+        print(f'Got new car list!\nMy id: {self.my_car}\nList: {self.car_ids}')
 
     def begin_countdown(self, time):
+        self.renderer.switch_to_countdown(time)
+        for car_id in self.car_ids:
+            self.renderer.track.add_participant(state.Car(car_id))
+        self.renderer.local_car = self.renderer.track.get_car_by_id(self.my_car)
         print(f'Begin countdown! {time}')
 
     def handle_message(self, message):
@@ -99,5 +104,6 @@ class Client(object):
         handler = subjects.get(message.subject, None)
         if handler is None:
             print(f'Receeived unknown message subject: {message.subject}')
+            print
         else:
             handler(message.data)

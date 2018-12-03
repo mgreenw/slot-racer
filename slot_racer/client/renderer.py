@@ -1,7 +1,7 @@
 import pyxel
 import math
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import glfw
 
@@ -46,23 +46,25 @@ class RenderState(Enum):
     MENU = 1
     LOBBY = 2
     PLAY = 3
+    COUNTDOWN = 4
 
 class Renderer(object):
     def __init__(self, track, client):
         self.client = client
         self.track = track
         self.stored = []
+        self.local_car = None
 
         # Init pyxel
         # Weird case because max width is 255, but we will assume it is 256
-        pyxel.init(WIDTH - 1 , HEIGHT)
+        pyxel.init(WIDTH - 1 , HEIGHT, fps=30)
         pyxel.mouse(True)
 
         self.render_state = RenderState.MENU
 
         # Setup buttons
         self.play_button = Button('Play', 60, 60, 30, 15, 4, 9)
-        self.play_button.set_on_press(self.switch_to_play)
+        # self.play_button.set_on_press(self.switch_to_countdown())
 
         self.quit_button = Button('Quit', 170, 60, 30, 15, 4, 9)
         self.quit_button.set_on_press(lambda: pyxel.quit())
@@ -73,8 +75,11 @@ class Renderer(object):
     def switch_to_lobby(self):
         self.render_state = RenderState.LOBBY
 
+    def switch_to_countdown(self, time_to_start):
+        self.render_state = RenderState.COUNTDOWN
+        self.synchronized_start = datetime.now() + timedelta(seconds=time_to_start)
+
     def switch_to_play(self):
-        self.client.send('start_game')
         self.render_state = RenderState.PLAY
 
     def start(self):
@@ -86,23 +91,33 @@ class Renderer(object):
 
         if self.render_state is RenderState.MENU:
             if pyxel.btn(glfw.KEY_ENTER):
-                self.switch_to_play()
-
-        if self.render_state is RenderState.PLAY:
-            if pyxel.btn(glfw.KEY_SPACE):
-                self.track.participants[0].accelerate()
-            else:
-                self.track.participants[0].stop_accelerating()
+                self.client.send('start_game')
+        elif self.render_state is RenderState.PLAY:
             if self.start_time is None:
                 self.start_time = datetime.now()
                 self.prev_time = self.start_time
-            else:
-                now = datetime.now()
-                dt = now - self.prev_time
-                self.prev_time = now
+
+            now = datetime.now()
+            dt = now - self.prev_time
+            self.prev_time = now
+
+            space_down = pyxel.btn(glfw.KEY_SPACE)
+            accelerating = self.local_car.is_accelerating
+
+            if space_down and not accelerating:
+                total_time = (now - self.start_time).total_seconds()
+                self.client.send('accelerate', total_time)
+                self.local_car.accelerate()
+            elif not space_down and accelerating:
+                total_time = (now - self.start_time).total_seconds()
+                self.client.send('stop_accelerating', total_time)
+                self.local_car.stop_accelerating()
 
                 # Update the track using the delta
-                self.track.update_all(dt.total_seconds())
+            self.track.update_all(dt.total_seconds())
+        elif self.render_state is RenderState.COUNTDOWN:
+            if datetime.now() > self.synchronized_start:
+                self.switch_to_play()
 
     def draw(self):
         pyxel.cls(7) # Clear screen, set background to white
@@ -120,24 +135,21 @@ class Renderer(object):
 
             for x, y in self.stored:
                 pyxel.circ(x, y, 1, 3)
+                pyxel.text(110, 10, 'GO GO GO!', 0)
 
-            # Car 1
-            pyxel.text(110, 10, 'GO GO GO!', 0)
-            x, y = physics.calculate_posn(self.track.participants[0])
-            x = x + 128
-            y = 72 - y
-            self.stored.append((x, y))
-            pyxel.circ(x, y, 2, 0)
-            pyxel.text(10, 10, f'{self.track.participants[0].speed}', 0)
+            for car in self.track.participants:
+                x, y = physics.calculate_posn(car)
+                x = x + 128
+                y = 72 - y
+                self.stored.append((x, y))
 
-            # Car 2
-            x, y = physics.calculate_posn(self.track.participants[1])
-            x = x + 128
-            y = 72 - y
-            pyxel.circ(x, y, 2, 1)
-            self.stored.append((x, y))
-            pyxel.text(10, 20, f'{self.track.participants[1].speed}', 0)
+                pyxel.circ(x, y, 2, 0)
+                pyxel.text(10, 10, f'{car.speed}', 0)
 
+            self.stored = self.stored[-20:]
 
+        elif self.render_state is RenderState.COUNTDOWN:
+            time = (self.synchronized_start - datetime.now()).total_seconds()
+            pyxel.text(30, 30, f'Get Ready! {str(int(time + 1))}', 0)
 
 

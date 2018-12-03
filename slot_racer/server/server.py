@@ -84,7 +84,7 @@ class Server(object):
                 if parsed.subject == 'start_game':
                     await self.begin_countdown()
 
-                print(f'Received message:\nSubject: {parsed.subject}\nData: {parsed.data}\n\n')
+                print(f'Received message:\nClient: {self.state.clients[skt].id}\nSubject: {parsed.subject}\nData: {parsed.data}\n')
                 await asyncio.sleep(self.listen_time)
         except websockets.exceptions.ConnectionClosed as e:
             print(f'Connection with Client '
@@ -101,8 +101,6 @@ class Server(object):
         if self.state.mode is not 'LOBBY':
             return
         await asyncio.wait([self.send_countdown(client) for client in self.state.clients.values()])
-
-
 
 
 class Client(object):
