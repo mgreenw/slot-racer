@@ -22,8 +22,8 @@ class Client(object):
                 this also contains the track itself
     - serializer: converts our data to a format we can use to communicate
     - running: boolean representing the state
-    - my_car: my car
-    - car_ids: ids of all cars on the track
+    - my_car: car id of client's car -- used during starting the game
+    - car_ids: ids of all cars on the track -- used during starting the game
 
     It is defined by the following behaviours:
     - _run_socket(host, port): Internal function that is spawned on a new thread
@@ -66,7 +66,6 @@ class Client(object):
 
     def _check_inbox(self):
         while self.running:
-            # Block until the client has a new message. Then, handle the message
             message = self.serializer.read(self.socket.inbox.get())
             self.handle_message(message)
 
@@ -78,19 +77,17 @@ class Client(object):
         )
         handler = subjects.get(message.subject, None)
         if handler is None:
-            print(f'Receeived unknown message subject: {message.subject}')
+            print(f'Received unknown message subject: {message.subject}')
             print()
         else:
             handler(message.data)
 
-    # Message responses
+    # Messaging Protocol ------------------------------------------------------
     def ping(self, data):
         self.socket.outbox.put(self.serializer.compose('pong', None))
 
     def cars(self, data):
-        my_car, all_cars = data
-        self.car_ids = all_cars
-        self.my_car = my_car
+        self.my_car, self.car_ids = data
         print(f'Got new car list!\nMy id: {self.my_car}\nList: {self.car_ids}')
 
     def begin_countdown(self, time):
