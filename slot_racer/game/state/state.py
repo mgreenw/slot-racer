@@ -106,7 +106,8 @@ class Track(object):
     """
 
     # global representations independent of each track
-    DEF_LAP = 8 * math.pi
+    DEF_LAP = 10
+    DEF_TS  = 0.015
 
     def __init__(self, num_participants=0, model=None, lap_distance=DEF_LAP):
         self.participants = [Car(i) for i in range(num_participants)]
@@ -137,11 +138,13 @@ class Track(object):
 
     def update_all(self, timestep):
         if self.participants:
-            for car in self.participants:
-                car.update(timestep)
-            # CHECK FALLEN CARS FOR COLLISIONS
-            # CHECK FOR WINNERS
-            # Maybe store a cap on the laps we need to compete
+            cur_ts = 0
+            while cur_ts < timestep:
+                for car in self.participants:
+                    car.update(timestep)
+                    if car.distance > self.DEF_LAP:
+                        return car.id
+                cur_ts += self.DEF_TS
         else:
             raise Exception("There are no cars on the track!")
 
