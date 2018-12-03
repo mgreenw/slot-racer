@@ -3,5 +3,4 @@
 from .game import *
 from .client import *
 from .server import *
-
-
+from .communication import *

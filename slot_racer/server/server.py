@@ -9,6 +9,9 @@ import asyncio
 import websockets
 from .protocol import get_protocol
 from ..game import Car, Track
+from collections import namedtuple
+import json
+from ..communication import Serializer
 
 
 class Server(object):
@@ -43,6 +46,7 @@ class Server(object):
         self.listen_time = 0.01
         self.protocol    = get_protocol()
         self.state       = ServerState()
+        self.serializer  = Serializer()
 
     def start_game(self):
         self.socket = websockets.serve(self.listener, self.host, self.port)
@@ -51,11 +55,12 @@ class Server(object):
         asyncio.get_event_loop().run_until_complete(self.socket)
         asyncio.get_event_loop().run_forever()
 
-    async def update_all(self, update='upda'):
-        while True:
-            for skt in self.state.clients:
-                await skt.send(update)
-            await asyncio.sleep(self.update_time)
+    async def update_all(self, subject='test', data=None):
+        message = self.serializer.compose(subject, data)
+        for skt in self.state.clients:
+            print('sending...')
+            await skt.send(message)
+        await asyncio.sleep(self.update_time)
 
     async def listener(self, skt, path):
         """
@@ -69,12 +74,12 @@ class Server(object):
             print(self.state.clients)
             if skt not in self.state.clients:
                 latency = await self.protocol['pong'](skt)
-                self.state.add_client(skt, latency)
-                await self.update_all(f'cars {str(self.state.get_ids())}')
+                print('latency', latency)
+                self.state.add_client(skt, 0.1)
+                await self.update_all('cars', self.state.get_ids())
             async for message in skt:
-                compiled_message = message[:4]
-                if compiled_message in self.protocol:
-                    self.protocol[compiled_message](self, message)
+                parsed = self.serializer.read(message)
+                print(f'Received message:\nSubject: {parsed.subject}\nData: {parsed.data}\n\n')
                 await asyncio.sleep(self.listen_time)
         except websockets.exceptions.ConnectionClosed as e:
             print(f'Connection with Client '

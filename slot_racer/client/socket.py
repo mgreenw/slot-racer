@@ -8,8 +8,37 @@ import asyncio
 import websockets
 import threading
 
+class Queue(object):
+    """Implementation of a threadsafe asyncio.Queue()
 
-async def start(client, host, port, receive_message, outgoing_message):
+    It is defined by the following attributes:
+    - queue: The asyncio.Queue()
+    - mutex: A lock to protect the queue
+    """
+    def __init__(self):
+        self.count = threading.Semaphore(0)
+        self.queue = []
+        self.mutex = threading.Lock()
+
+    def put(self, item):
+        """Since the queue is not capped at a size limit, it is always going
+        to complete immediately. This is the reason we make it non-async.
+        """
+        with self.mutex:
+            self.queue.append(item)
+            self.count.release()
+
+    def get(self):
+        """The queue can be empty at various points in execution. At such a
+        situation, we don't want to block the code. We simply want to only
+        try to access the queue when we know we can get a proper result.
+        """
+        self.count.acquire()
+        with self.mutex:
+            return self.queue.pop(0)
+
+
+async def start(skt):
     """Creates a socket and initiates and runs it
     :param: client: the client that will be using this socket
     :param: host: host of server
@@ -17,10 +46,7 @@ async def start(client, host, port, receive_message, outgoing_message):
     :param: receive_message: a function to handle messages received
     :param: outgoing_message: a function to handle messages sent
     """
-    skt = Socket(host, port)
-    skt.connection = await websockets.connect(f'ws://{skt.host}:{skt.port}')
-    client.socket = skt
-    await skt.run(receive_message, outgoing_message)
+    await skt.run()
     # TODO: close the socket/deinit the socket??
 
 
@@ -44,35 +70,38 @@ class Socket(object):
         self.port       = port
         self.connection = None
         self.swap_time  = 0.01
+        self.inbox      = Queue()
+        self.outbox     = Queue()
 
     def raise_error_uninit(self):
         if not self.connection:
             raise Exception("Socket not started. \n"
                             "USAGE: asyncio.run(socket.start(...) to use this.")
 
-    async def run(self, recv, outg):
-        self.raise_error_uninit()
-        consumer_task = asyncio.ensure_future(self._receive_handler(recv))
-        producer_task = asyncio.ensure_future(self._send_handler(outg))
+    async def run(self, ):
+        self.connection = await websockets.connect(f'ws://{self.host}:{self.port}')
+        outbox_thread = threading.Thread(target=self._send_handler)
+        outbox_thread.start()
+        consumer_task = asyncio.ensure_future(self._receive_handler())
         done, pending = await asyncio.wait(
-            [consumer_task, producer_task],
+            [consumer_task],
             return_when=asyncio.FIRST_COMPLETED
         )
         for task in pending:
             task.cancel()
 
-    async def _receive_handler(self, receive_message):
+        # TODO: kill the outbox thread
+
+    async def _receive_handler(self):
         self.raise_error_uninit()
         async for message in self.connection:
-            receive_message(message)
+            self.inbox.put(message)
             await asyncio.sleep(self.swap_time)
 
-    async def _send_handler(self, outgoing_message):
+    def _send_handler(self):
         self.raise_error_uninit()
         while True:
-            message = outgoing_message()
-            if message:
-                await self.connection.send(message)
-            await asyncio.sleep(self.swap_time)
+            message = self.outbox.get()
+            asyncio.run(self.connection.send(message))
 
 

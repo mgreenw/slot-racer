@@ -6,10 +6,12 @@
 # package imports
 import asyncio
 import threading
+import json
 from ..game import state
 from .renderer import Renderer
-from .socket import start
+from .socket import start, Socket
 from .protocol import get_protocol
+from ..communication import Serializer
 
 
 class Client(object):
@@ -40,59 +42,29 @@ class Client(object):
         self.socket        = None
         self.socket_thread = None
         self.renderer      = Renderer(state.Track())
-        self.protected_q   = Queue()
         self.protocol      = get_protocol()
+        self.serializer    = Serializer()
+
+        self.renderer.track.add_participant(state.Car(1))
+        self.renderer.track.add_participant(state.Car(2))
 
     def _run_socket(self, host, port):
         asyncio.set_event_loop(asyncio.new_event_loop())
         asyncio.get_event_loop().run_until_complete(
-            start(self, host, port, self.receive_message, self.outgoing_message))
+            start(self.socket))
 
-    def receive_message(self, message):
-        print(message)
-        self.protected_q.put(message)
-
-    def outgoing_message(self):
-        message = self.protected_q.get()
-        if message in self.protocol:
-            return self.protocol[message](self, message)
+    def _check_inbox(self):
+        while True:
+            message = self.serializer.read(self.socket.inbox.get())
+            print('Client received message!')
+            print(message)
+            self.socket.outbox.put(self.serializer.compose('cars_response', message.subject))
 
     def join_game(self, host='localhost', port=8765):
+        self.socket = Socket(host, port)
         self.socket_thread = \
             threading.Thread(target=self._run_socket, args=[host, port])
         self.socket_thread.start()
-
-
-class Queue(object):
-    """Implementation of a threadsafe asyncio.Queue()
-
-    It is defined by the following attributes:
-    - queue: The asyncio.Queue()
-    - mutex: A lock to protect the queue
-    """
-    def __init__(self):
-        self.queue = asyncio.Queue()
-        self.mutex = threading.Lock()
-
-    def put(self, item):
-        """Since the queue is not capped at a size limit, it is always going
-        to complete immediately. This is the reason we make it non-async.
-        """
-        self.mutex.acquire()
-        self.queue.put_nowait(item)
-        self.mutex.release()
-
-    def get(self):
-        """The queue can be empty at various points in execution. At such a
-        situation, we don't want to block the code. We simply want to only
-        try to access the queue when we know we can get a proper result.
-        """
-        self.mutex.acquire()
-        if not self.queue.empty():
-            item = self.queue.get_nowait()
-        else:
-            item = 'EMPTY'
-        self.mutex.release()
-        return item
-
-
+        inbox_thread = threading.Thread(target=self._check_inbox)
+        inbox_thread.start()
+        self.renderer.start()
