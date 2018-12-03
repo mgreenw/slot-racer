@@ -133,8 +133,17 @@ class Renderer(object):
             pass
         elif self.render_state is RenderState.PLAY:
 
-            for x, y in self.stored:
-                pyxel.circ(x, y, 1, 3)
+            for (x, y) in self.track.track_0_points[:300]:
+                pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 3)
+
+            for (x, y) in self.track.track_1_points[:300]:
+                pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 4)
+
+            for (x, y) in self.track.track_1_points[300:]:
+                pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 4)
+
+            for (x, y) in self.track.track_0_points[300:]:
+                pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 3)
 
             pyxel.text(110, 10, 'GO GO GO!', 0)
 
