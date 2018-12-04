@@ -52,23 +52,32 @@ class Car(object):
         self.speed           = 0
         self.distance        = 0
         self.is_accelerating = False
-        self.prev_events     = [Event(self.START)]
+        self.prev_events     = [Event(self.START, self)]
         self.fallen          = None
         self.model           = model
 
     def accelerate(self):
         self.is_accelerating = True
-        self.prev_events.append(Event(self.ACCELERATE))
+        self.prev_events.append(Event(self.ACCELERATE, self))
+        return self.prev_events[-1]
 
     def stop_accelerating(self):
         self.is_accelerating = False
-        self.prev_events.append(Event(self.STOP_ACCELERATING))
+        self.prev_events.append(Event(self.STOP_ACCELERATING, self))
+        return self.prev_events[-1]
 
     def get_posn(self):
         return physics.calculate_posn(self)
 
     def fall(self, speed, distance):
         self.fallen = FallData(speed, distance)
+
+    def append_events(self, events, gametime):
+        self.prev_events.extend(events)
+        self.speed    = events[-1].speed
+        self.distance = events[-1].distance
+        timestep = gametime - events[-1].timestamp
+        self.update(timestep)
 
     def update(self, timestep):
         """Gets the new speed and distance of the car.
@@ -156,11 +165,6 @@ class Track(object):
         else:
             raise Exception("There are no cars on the track!")
 
-    def resync(self, participants):
-        """This is subject to more change once we have our basic version of the
-        game running"""
-        self.participants = participants
-
     @staticmethod
     def generate_track_points(track_id):
         dummy = Car(track_id)
@@ -170,3 +174,5 @@ class Track(object):
             dummy.distance += (1 / 600)
         # print(points)
         return points
+
+
