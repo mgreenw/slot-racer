@@ -90,10 +90,10 @@ class Renderer(object):
         if not isinstance(self.render_state, RenderState):
             self.render_state = RenderState.MENU
 
-        if self.render_state is RenderState.MENU:
-            if pyxel.btn(glfw.KEY_ENTER):
-                self.client.send('start_game')
-        elif self.render_state is RenderState.PLAY:
+        # if self.render_state is RenderState.MENU:
+        #     if pyxel.btn(glfw.KEY_ENTER):
+        #         self.client.send('start_game')
+        if self.render_state is RenderState.PLAY:
             if self.start_time is None:
                 self.start_time = datetime.now()
                 self.prev_time = self.start_time
@@ -136,7 +136,6 @@ class Renderer(object):
             # Allow users to join a server
             pass
         elif self.render_state is RenderState.PLAY:
-
             for (x, y) in self.track.track_0_points[:300]:
                 pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 3)
 
