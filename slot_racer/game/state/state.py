@@ -119,6 +119,8 @@ class Track(object):
         self.participants = [Car(i) for i in range(num_participants)]
         self.lap_distance = lap_distance
         self.model        = model
+        self.track_0_points = Track.generate_track_points(0)
+        self.track_1_points = Track.generate_track_points(1)
 
     def add_participant(self, car, idx=-1):
         if car not in self.participants:
@@ -158,3 +160,13 @@ class Track(object):
         """This is subject to more change once we have our basic version of the
         game running"""
         self.participants = participants
+
+    @staticmethod
+    def generate_track_points(track_id):
+        dummy = Car(track_id)
+        points = []
+        for _ in range(600):
+            points.append(physics.calculate_posn(dummy))
+            dummy.distance += (1 / 600)
+        # print(points)
+        return points

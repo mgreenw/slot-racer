@@ -48,6 +48,7 @@ class RenderState(Enum):
     PLAY = 3
     COUNTDOWN = 4
 
+
 class Renderer(object):
     def __init__(self, track, client):
         self.client = client
@@ -132,17 +133,30 @@ class Renderer(object):
             pass
         elif self.render_state is RenderState.PLAY:
 
-            for x, y in self.stored:
-                pyxel.circ(x, y, 1, 3)
+            for (x, y) in self.track.track_0_points[:300]:
+                pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 3)
+
+            for (x, y) in self.track.track_1_points[:300]:
+                pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 4)
+
+            for (x, y) in self.track.track_1_points[300:]:
+                pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 4)
+
+            for (x, y) in self.track.track_0_points[300:]:
+                pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 3)
 
             pyxel.text(110, 10, 'GO GO GO!', 0)
+
+            for (x, y) in self.stored:
+                pyxel.circ(x, y, 1, 5)
 
             for index, car in enumerate(self.track.participants):
                 x, y = car.get_posn()
                 x = x + 128
                 y = 72 - y
                 self.stored.append((x, y))
-                pyxel.circ(x, y, 2, index)
+                color = 9 if self.client.id == index else 11
+                pyxel.circ(x, y, 2, color)
                 pyxel.text(10, 10 * (index + 1), f'{car.speed}', 0)
                 if car.fallen:
                     self.explode(x, y, car)
@@ -154,10 +168,9 @@ class Renderer(object):
             time = (self.synchronized_start - datetime.now()).total_seconds()
             pyxel.text(30, 30, f'Get Ready! {str(int(time + 1))}', 0)
 
-
     def explode(self, x, y, car):
         explosion_time = car.fallen.explosion_time
         step = int(explosion_time * 16)
         w, h = car.fallen.img_sizes[step]
-        pyxel.image(0).load(0, 0, 'slot_racer/client/explosion-{}.png'.format(step))
+        pyxel.image(0).load(0, 0, f'slot_racer/client/explosion-{step}.png')
         pyxel.blt(x - (w / 2), y - (h / 2), 0, 0, 0, w, h)
