@@ -89,6 +89,7 @@ class Client(object):
 
     def cars(self, data):
         self.my_car, self.car_ids = data
+        self.id = self.my_car
         print(f'Got new car list!\nMy id: {self.my_car}\nList: {self.car_ids}')
 
     def begin_countdown(self, time):
@@ -99,6 +100,8 @@ class Client(object):
         print(f'Begin countdown! {time}')
 
     def server_update(self, data):
-        print(f'Receive server update: {data}')
+        server_time, events = data
+        if len(events) > 0:
+            print(f'Receive server update: {events}')
 
 

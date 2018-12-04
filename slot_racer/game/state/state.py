@@ -10,6 +10,7 @@ import math
 # local imports
 from .extra import FallData, Event
 from ..physics import physics
+import copy
 
 
 class Car(object):
@@ -43,27 +44,26 @@ class Car(object):
     """
 
     # global representations independent of each car
-    START             = "S"
-    ACCELERATE        = "A"
-    STOP_ACCELERATING = "R"
+    ACCELERATE        = "accelerate"
+    STOP_ACCELERATING = "stop_accelerating"
 
     def __init__(self, idx, model=None):
         self.id              = idx
         self.speed           = 0
         self.distance        = 0
         self.is_accelerating = False
-        self.prev_events     = [Event(self.START, self)]
+        self.prev_events     = []
         self.fallen          = None
         self.model           = model
 
-    def accelerate(self):
+    def accelerate(self, game_time):
         self.is_accelerating = True
-        self.prev_events.append(Event(self.ACCELERATE, self))
+        self.prev_events.append(Event(self.ACCELERATE, self, game_time))
         return self.prev_events[-1]
 
-    def stop_accelerating(self):
+    def stop_accelerating(self, game_time):
         self.is_accelerating = False
-        self.prev_events.append(Event(self.STOP_ACCELERATING, self))
+        self.prev_events.append(Event(self.STOP_ACCELERATING, self, game_time))
         return self.prev_events[-1]
 
     def get_posn(self):
@@ -76,8 +76,42 @@ class Car(object):
         self.prev_events.extend(events)
         self.speed    = events[-1].speed
         self.distance = events[-1].distance
+        if events[-1].event_type is self.ACCELERATE:
+            self.is_accelerating = True
+        else:
+            self.is_accelerating = False
         timestep = gametime - events[-1].timestamp
         self.update(timestep)
+
+    def get_past_posn(self, gametime):
+        # Find first event before the given gametime
+        last_event = None
+        for event in reversed(self.prev_events):
+            if event.timestamp < gametime:
+                last_event = event
+                break
+
+        prev_self = copy.deepcopy(self)
+
+        # Set the car's to where it was at that event
+        if last_event:
+            prev_self.speed = last_event.speed
+            prev_self.distance = last_event.distance
+            if last_event.event_type == self.ACCELERATE:
+                prev_self.is_accelerating = True
+            else:
+                prev_self.is_accelerating = False
+        update_time = None
+        if last_event is None:
+            update_time = gametime
+        else:
+            update_time = gametime - last_event.timestamp
+
+        spf = 1.0 / 30.0
+
+        for step in range(0, math.ceil(update_time / spf)):
+            prev_self.update(spf)
+        return physics.calculate_posn(prev_self)
 
     def update(self, timestep):
         """Gets the new speed and distance of the car.

@@ -72,6 +72,8 @@ class Renderer(object):
 
         self.start_time = None
         self.prev_time = None
+        self.dt = 0.0
+        self.game_time = 0.0
 
     def switch_to_lobby(self):
         self.render_state = RenderState.LOBBY
@@ -94,27 +96,28 @@ class Renderer(object):
             if pyxel.btn(glfw.KEY_ENTER):
                 self.client.send('start_game')
         elif self.render_state is RenderState.PLAY:
-            if self.start_time is None:
-                self.start_time = datetime.now()
-                self.prev_time = self.start_time
 
             now = datetime.now()
-            dt = now - self.prev_time
+            if self.start_time is None:
+                self.start_time = now
+                self.prev_time = now
+
+            self.dt = now - self.prev_time
             self.prev_time = now
-            game_time = (now - self.start_time).total_seconds()
+            self.game_time = (now - self.start_time).total_seconds()
 
             space_down = pyxel.btn(glfw.KEY_SPACE)
             accelerating = self.local_car.is_accelerating
 
             if space_down and not accelerating:
-                self.client.send('accelerate', game_time)
-                self.local_car.accelerate()
+                self.client.send('accelerate', self.game_time)
+                self.local_car.accelerate(self.game_time)
             elif not space_down and accelerating:
-                self.client.send('stop_accelerating', game_time)
-                self.local_car.stop_accelerating()
+                self.client.send('stop_accelerating', self.game_time)
+                self.local_car.stop_accelerating(self.game_time)
 
                 # Update the track using the delta
-            self.track.update_all(dt.total_seconds())
+            self.track.update_all(self.dt.total_seconds())
         elif self.render_state is RenderState.COUNTDOWN:
             if datetime.now() > self.synchronized_start:
                 self.switch_to_play()
@@ -152,11 +155,13 @@ class Renderer(object):
 
             for index, car in enumerate(self.track.participants):
                 x, y = car.get_posn()
+                prev_x, prev_y = car.get_past_posn(self.game_time - 0.1)
                 x = x + 128
                 y = 72 - y
                 self.stored.append((x, y))
                 color = 9 if self.client.id == index else 11
                 pyxel.circ(x, y, 2, color)
+                pyxel.circ(prev_x + 128, 72 - prev_y, 2, 0)
                 pyxel.text(10, 10 * (index + 1), f'{car.speed}', 0)
                 if car.fallen:
                     self.explode(x, y, car)

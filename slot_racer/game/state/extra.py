@@ -38,9 +38,9 @@ class Event(object):
     - timestamp: The time the event happened
     - car: the car for which this event is getting created
     """
-    def __init__(self, event_type, car):
+    def __init__(self, event_type, car, timestamp):
         self.event_type = event_type
-        self.timestamp  = datetime.datetime.now()
+        self.timestamp  = timestamp
         self.speed      = car.speed
         self.distance   = car.distance
 
