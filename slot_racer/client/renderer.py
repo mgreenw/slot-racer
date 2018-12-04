@@ -110,14 +110,14 @@ class Renderer(object):
             accelerating = self.local_car.is_accelerating
 
             if space_down and not accelerating:
-                self.client.send('accelerate', self.game_time)
-                self.local_car.accelerate(self.game_time)
+                event = self.local_car.accelerate(self.game_time)
+                self.client.send('accelerate', (self.game_time, event.speed, event.distance))
             elif not space_down and accelerating:
-                self.client.send('stop_accelerating', self.game_time)
-                self.local_car.stop_accelerating(self.game_time)
+                event = self.local_car.stop_accelerating(self.game_time)
+                self.client.send('stop_accelerating', (self.game_time, event.speed, event.distance))
 
                 # Update the track using the delta
-            self.track.update_all(self.dt.total_seconds())
+            self.track.update_all(self.game_time)
         elif self.render_state is RenderState.COUNTDOWN:
             if datetime.now() > self.synchronized_start:
                 self.switch_to_play()

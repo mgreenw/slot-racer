@@ -112,11 +112,11 @@ class Client(object):
                 car = self.renderer.track.get_car_by_id(car_id)
                 events_to_insert = []
                 for car_id, event in events:
-                    event_type, timestamp = event
-                    e = Event(event_type, timestamp)
+                    event_type, data = event
+                    timestamp, speed, distance = data
+                    e = Event(event_type, timestamp, speed, distance)
                     events_to_insert.append(e)
 
                 car.append_events(events_to_insert, self.renderer.game_time)
-                print(f'Receive server update: {events}')
 
 

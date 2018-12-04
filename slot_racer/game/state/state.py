@@ -59,11 +59,13 @@ class Car(object):
     def accelerate(self, game_time):
         self.is_accelerating = True
         self.prev_events.append(Event(self.ACCELERATE, game_time, self.speed, self.distance))
+        print(f'Accelerate: {self.prev_events[-1]}')
         return self.prev_events[-1]
 
     def stop_accelerating(self, game_time):
         self.is_accelerating = False
         self.prev_events.append(Event(self.STOP_ACCELERATING, game_time, self.speed, self.distance))
+        print(f'Stop Accelerating: {self.prev_events[-1]}')
         return self.prev_events[-1]
 
     def get_posn(self):
@@ -73,34 +75,33 @@ class Car(object):
         self.fallen = FallData(speed, distance)
 
     def append_events(self, events, gametime):
-        last_event = self.prev_events[-1] if len(self.prev_events) > 0 else None
-        last_time = 0.0
-        if last_event is not None:
-            print(self.prev_events)
-            self.speed = last_event.speed
-            self.distance = last_event.distance
-            if last_event.event_type == self.ACCELERATE:
-                self.is_accelerating = True
-            else:
-                self.is_accelerating = False
-            last_time = last_event.timestamp
+        self.prev_events.extend(events)
+        self.update(gametime)
+        # last_event = self.prev_events[-1] if len(self.prev_events) > 0 else None
+        # last_time = 0.0
+        # if last_event is not None:
+        #     self.speed = last_event.speed
+        #     self.distance = last_event.distance
+        #     if last_event.event_type == self.ACCELERATE:
+        #         self.is_accelerating = True
+        #     else:
+        #         self.is_accelerating = False
+        #     last_time = last_event.timestamp
 
-        for event in events:
-            self.update(event.timestamp - last_time)
-            print(f"Run update: {event.timestamp - last_time}")
-            print(f"New speed and dist: S: {self.speed} D: {self.distance}")
-            event.speed = self.speed
-            event.distance = self.distance
+        # for event in events:
+        #     self.update(event.timestamp)
+        #     event.speed = self.speed
+        #     event.distance = self.distance
 
-            print(f'Set speed and dist: {event}')
-            last_time = event.timestamp
-            if event.event_type == self.ACCELERATE:
-                self.is_accelerating = True
-            else:
-                self.is_accelerating = False
-            self.prev_events.append(event)
+        #     last_time = event.timestamp
+        #     print(f'Insert other client event: {event}')
+        #     if event.event_type == self.ACCELERATE:
+        #         self.is_accelerating = True
+        #     else:
+        #         self.is_accelerating = False
+        #     self.prev_events.append(event)
 
-        self.update(gametime - last_time)
+        # self.update(gametime)
 
     def get_past_posn(self, gametime):
         # Find first event before the given gametime
@@ -120,25 +121,28 @@ class Car(object):
                 prev_self.is_accelerating = True
             else:
                 prev_self.is_accelerating = False
-        update_time = None
-        if last_event is None:
-            update_time = gametime
-        else:
-            update_time = gametime - last_event.timestamp
-
-        spf = 1.0 / 30.0
-
-        for step in range(0, math.ceil(update_time / spf)):
-            prev_self.update(spf)
+        prev_self.update(gametime)
         return physics.calculate_posn(prev_self)
 
-    def update(self, timestep):
+    def update(self, gametime):
         """Gets the new speed and distance of the car.
         - If it has fallen off the track,
             we reset the speed to 0 and leave the distance unchanged. This
             allows us to restart the car from where it fell off on the track.
         - Otherwise we update our car with the new speed and distance
         """
+        last_event = None
+        timestep = gametime
+        if len(self.prev_events) > 0:
+            last_event = self.prev_events[-1]
+            self.speed = last_event.speed
+            self.distance = last_event.distance
+            timestep = gametime - last_event.timestamp
+            if last_event.event_type == self.ACCELERATE:
+                self.is_accelerating = True
+            else:
+                self.is_accelerating = False
+
         speed, distance = physics.car_timestep(self, timestep)
         if physics.falling(self):
             self.speed = 0
@@ -206,10 +210,10 @@ class Track(object):
             if car.id == idx:
                 return car
 
-    def update_all(self, timestep):
+    def update_all(self, gametime):
         if self.participants:
             for car in self.participants:
-                car.update(timestep)
+                car.update(gametime)
             # CHECK FALLEN CARS FOR COLLISIONS
             # CHECK FOR WINNERS
             # Maybe store a cap on the laps we need to compete

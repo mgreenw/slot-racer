@@ -114,8 +114,8 @@ class Server(object):
         else:
             car = self.track.get_car_by_id(client.id)
             print("PARSED", parsed)
-            timestamp = parsed.data
-            event = Event(parsed.subject, timestamp)
+            timestamp, speed, distance = parsed.data
+            event = Event(parsed.subject, timestamp, speed, distance)
             car.append_events([event], self.game_time)
             with self.events_lock:
                 self.events.append((client.id, parsed))
