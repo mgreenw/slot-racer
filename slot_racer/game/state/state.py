@@ -52,23 +52,32 @@ class Car(object):
         self.speed           = 0
         self.distance        = 0
         self.is_accelerating = False
-        self.prev_events     = [Event(self.START)]
+        self.prev_events     = [Event(self.START, self)]
         self.fallen          = None
         self.model           = model
 
     def accelerate(self):
         self.is_accelerating = True
-        self.prev_events.append(Event(self.ACCELERATE))
+        self.prev_events.append(Event(self.ACCELERATE, self))
+        return self.prev_events[-1]
 
     def stop_accelerating(self):
         self.is_accelerating = False
-        self.prev_events.append(Event(self.STOP_ACCELERATING))
+        self.prev_events.append(Event(self.STOP_ACCELERATING, self))
+        return self.prev_events[-1]
 
     def get_posn(self):
         return physics.calculate_posn(self)
 
     def fall(self, speed, distance):
         self.fallen = FallData(speed, distance)
+
+    def append_events(self, events, gametime):
+        self.prev_events.extend(events)
+        self.speed    = events[-1].speed
+        self.distance = events[-1].distance
+        timestep = gametime - events[-1].timestamp
+        self.update(timestep)
 
     def update(self, timestep):
         """Gets the new speed and distance of the car.
@@ -112,7 +121,8 @@ class Track(object):
     """
 
     # global representations independent of each track
-    DEF_LAP = 8 * math.pi
+    DEF_LAP = 10
+    DEF_TS  = 0.015
 
     def __init__(self, num_participants=0, model=None, lap_distance=DEF_LAP):
         self.participants = [Car(i) for i in range(num_participants)]
@@ -145,18 +155,15 @@ class Track(object):
 
     def update_all(self, timestep):
         if self.participants:
-            for car in self.participants:
-                car.update(timestep)
-            # CHECK FALLEN CARS FOR COLLISIONS
-            # CHECK FOR WINNERS
-            # Maybe store a cap on the laps we need to compete
+            cur_ts = 0
+            while cur_ts < timestep:
+                for car in self.participants:
+                    car.update(timestep)
+                    if car.distance > self.DEF_LAP:
+                        return car.id
+                cur_ts += self.DEF_TS
         else:
             raise Exception("There are no cars on the track!")
-
-    def resync(self, participants):
-        """This is subject to more change once we have our basic version of the
-        game running"""
-        self.participants = participants
 
     @staticmethod
     def generate_track_points(track_id):
@@ -167,3 +174,5 @@ class Track(object):
             dummy.distance += (1 / 600)
         # print(points)
         return points
+
+

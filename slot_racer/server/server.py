@@ -4,14 +4,14 @@
 # Module to create a Server and its associated behaviours
 
 # package imports
-import re
+import time
 import asyncio
 import websockets
-from .protocol import get_protocol
 from ..game import Car, Track
-from collections import namedtuple
-import json
 from ..communication import Serializer
+from datetime import datetime, timedelta
+from threading import Lock
+
 
 class Server(object):
     """Server defines how a server interacts with its clients
@@ -19,16 +19,11 @@ class Server(object):
     It is defined by the following attributes:
     - host: string representing the host
     - port: integer representing the port number to connect to
-    - socket: the open websocket for the server
+    - server: the open websocket for the server
     - update_time: time update_all loop waits for listener
     - listen_time: time listener loop waits for update_all
-    - protocol: a dictionary containing our messaging protocol as a mapping of
-          messages to functions
     - state: the state of the server defined below in ServerState
-
-    A brief guide to our protocol [for more information, go to protocol.py]:
-    - ping: returns the latency
-    - cars: sends out a list of all the cars
+    - serializer: converts messages for reading and sending
 
     It is defined by the following behaviours:
     - start_server(): starts a socket connection that clients can connect to
@@ -43,15 +38,32 @@ class Server(object):
         self.server      = None
         self.update_time = 0.01
         self.listen_time = 0.01
-        self.protocol    = get_protocol()
         self.state       = ServerState()
         self.serializer  = Serializer()
+        self.track       = Track()
+        self.events      = []
+        self.events_lock = Lock()
 
     def start_server(self):
         self.server = websockets.serve(self.listener, self.host, self.port)
         print(f'Listening at {self.host}:{self.port}...')
+        asyncio.ensure_future(self.loop())
         asyncio.get_event_loop().run_until_complete(self.server)
         asyncio.get_event_loop().run_forever()
+
+    async def loop(self):
+        while True:
+            if self.state.start_time is not None:
+                now = datetime.now()
+                if now > self.state.start_time:
+                    game_time = (now - self.state.start_time).total_seconds()
+                    events = []
+                    with self.events_lock:
+                        events = self.events
+                        self.events = []
+
+                    await self.update_all('update', (game_time, events))
+            await asyncio.sleep(0.05)
 
     async def send(self, client, subject, data=None):
         message = self.serializer.compose(subject, data)
@@ -59,33 +71,27 @@ class Server(object):
 
     async def update_all(self, subject, data=None):
         message = self.serializer.compose(subject, data)
-        for skt in self.state.clients:
-            await skt.send(message)
-        await asyncio.sleep(self.update_time)
+        await asyncio.wait([skt.send(message) for skt in self.state.clients])
 
     async def listener(self, skt, path):
-        """
-        DEV NOTES:
-        - This function will be used to enforce our protocol
-        - As soon as a client joins the game, we start our pinging to establish
-          the latency
-        - We are only going to use 4 letter codes to define our protocol
-        """
         try:
             # There is a new socket! Find it's latency
-            latency = await self.protocol['pong'](skt)
+            latency = await self.ping(skt)
             print(f'New Client Connected! Latency: {latency}')
 
-            # Add the client to the server state
+            # Add the client to the server state and tell everyone about it
             me = self.state.add_client(skt, latency)
             await self.update_all('cars', (me, self.state.get_ids()))
+
+            # start listening for messages
             async for message in skt:
                 parsed = self.serializer.read(message)
                 if parsed.subject == 'start_game':
                     await self.begin_countdown()
-
-                print(f'Received message:\nClient: {self.state.clients[skt].id}\nSubject: {parsed.subject}\nData: {parsed.data}\n')
+                print(f'Received message:\nClient: {self.state.clients[skt].id}'
+                      f'\nSubject: {parsed.subject}\nData: {parsed.data}\n')
                 await asyncio.sleep(self.listen_time)
+
         except websockets.exceptions.ConnectionClosed as e:
             print(f'Connection with Client '
                   f'#{self.state.clients[skt][0]} closed!')
@@ -93,14 +99,36 @@ class Server(object):
             self.state.remove_client(skt)
             await self.update_all(f'cars {str(self.state.get_ids())}')
 
+    async def read_message(self, client, message):
+        parsed = self.serializer.read(message)
+        if parsed.subject == 'start_game':
+            await self.begin_countdown()
+            for car in self.state.clients.values():
+                self.track.add_participant(Car(car.id))
+        else:
+            with self.events_lock:
+                self.events.append((client.id, parsed))
+        print(f'Received message:\nClient: {client.id}\nSubject: {parsed.subject}\nData: {parsed.data}\n')
+
     async def send_countdown(self, client):
-        time = 5 - client.latency
-        await self.send(client.socket, 'begin_countdown', time)
+        t = 5 - client.latency
+        await self.send(client.socket, 'begin_countdown', t)
 
     async def begin_countdown(self):
         if self.state.mode is not 'LOBBY':
             return
+        self.state.start_time = datetime.now() + timedelta(seconds=5)
         await asyncio.wait([self.send_countdown(client) for client in self.state.clients.values()])
+
+    async def ping(self, skt):
+        repeat, latencies = 50, []
+        for _ in range(repeat):
+            start = time.time()
+            await self.send(skt, 'ping')
+            await skt.recv()
+            end = time.time()
+            latencies.append(end - start)
+        return max(latencies)
 
 
 class Client(object):
@@ -108,6 +136,7 @@ class Client(object):
         self.id = id
         self.socket = socket
         self.latency = latency
+
 
 class ServerState(object):
     """ServerState represents the state of our server
@@ -126,6 +155,10 @@ class ServerState(object):
         self.clients = {}
         self.track   = Track()
         self.max_id  = 0
+        self.start_time = None
+
+    def get_update(self):
+        pass
 
     def add_client(self, client_socket, client_latency):
         client = Client(self.max_id, client_socket, client_latency)

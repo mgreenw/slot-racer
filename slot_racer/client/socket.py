@@ -8,6 +8,7 @@ import asyncio
 import websockets
 import threading
 
+
 class Queue(object):
     """Implementation of a threadsafe asyncio.Queue()
 
