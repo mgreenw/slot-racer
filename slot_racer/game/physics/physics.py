@@ -52,12 +52,17 @@ def calculate_speed(speed, accelerating, timestep):
     else:
         return max(speed - acceleration, 0)
 
-def calculate_distance(distance, initial_speed, final_speed, timestep):
-    avg_speed = (initial_speed + final_speed) / 2.0
-    return distance + (avg_speed * timestep)
+def calculate_distance(distance, initial_speed, accelerating, timestep):
+    if accelerating:
+        return distance + (initial_speed * timestep) + .5 * ACCELERATION * math.pow(timestep, 2)
+    else:
+        time_until_stop = initial_speed / ACCELERATION
+        if time_until_stop > timestep:
+            return distance + (initial_speed * timestep) - .5 * ACCELERATION * math.pow(timestep, 2)
+        else:
+            return distance + (initial_speed * time_until_stop) - .5 * ACCELERATION * math.pow(time_until_stop, 2)
 
 def car_timestep(car, timestep):
-    initial_speed = car.speed
+    distance = calculate_distance(car.distance, car.speed, car.is_accelerating, timestep)
     speed = calculate_speed(car.speed, car.is_accelerating, timestep)
-    distance = calculate_distance(car.distance, initial_speed, speed, timestep)
     return speed, distance
