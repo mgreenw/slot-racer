@@ -156,7 +156,6 @@ class Renderer(object):
                 x = x + 128
                 y = 72 - y
                 self.stored.append((x, y))
-                print (self.client.id, index)
                 color = 9 if self.client.id == index else 11
                 pyxel.circ(x, y, 2, color)
                 pyxel.text(10, 10 * (index + 1), f'{car.speed}', 0)
