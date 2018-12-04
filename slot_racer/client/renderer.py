@@ -127,7 +127,7 @@ class Renderer(object):
             # Play button or quit
             pyxel.text(110, 10, 'SLOT RACER', 0)
             pyxel.text(100, 24, 'People in Lobby:', 0)
-            for index, player in enumerate(['You', 'Me', 'Collins', 'Maureen']): #TODO: store users in lobby somewhere and access them here
+            for index, player in enumerate([]): #TODO: store users in lobby somewhere and access them here
                 pyxel.text(104, 30 + index * 6, f'{index}: {player}', 0)
             self.play_button.render()
             self.quit_button.render()
@@ -149,6 +149,10 @@ class Renderer(object):
                 pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 3)
 
             pyxel.text(110, 10, 'GO GO GO!', 0)
+
+            pyxel.text(160, 10, 'Press SPACE to', 0)
+            pyxel.text(160, 16, 'accelerate. Don\'t', 0)
+            pyxel.text(160, 22, 'go too fast, or KABOOM!', 0)
 
             for (x, y) in self.stored:
                 pyxel.circ(x, y, 1, 5)
