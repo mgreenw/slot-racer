@@ -53,7 +53,7 @@ def calculate_speed(speed, accellerating, timestep):
     else:
         return max(speed - acceleration, 0)
 
-def calculate_distance(distance, speed, timestep):
+def calculate_distance(distance, speed, acceleration, timestep):
     return distance + (speed * timestep) #TODO: temporary, might want to use method similar to in `falling`
 
 def car_timestep(car, timestep):

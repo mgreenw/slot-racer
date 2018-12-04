@@ -58,12 +58,12 @@ class Car(object):
 
     def accelerate(self, game_time):
         self.is_accelerating = True
-        self.prev_events.append(Event(self.ACCELERATE, self, game_time))
+        self.prev_events.append(Event(self.ACCELERATE, game_time, self.speed, self.distance))
         return self.prev_events[-1]
 
     def stop_accelerating(self, game_time):
         self.is_accelerating = False
-        self.prev_events.append(Event(self.STOP_ACCELERATING, self, game_time))
+        self.prev_events.append(Event(self.STOP_ACCELERATING, game_time, self.speed, self.distance))
         return self.prev_events[-1]
 
     def get_posn(self):
@@ -73,15 +73,34 @@ class Car(object):
         self.fallen = FallData(speed, distance)
 
     def append_events(self, events, gametime):
-        self.prev_events.extend(events)
-        self.speed    = events[-1].speed
-        self.distance = events[-1].distance
-        if events[-1].event_type is self.ACCELERATE:
-            self.is_accelerating = True
-        else:
-            self.is_accelerating = False
-        timestep = gametime - events[-1].timestamp
-        self.update(timestep)
+        last_event = self.prev_events[-1] if len(self.prev_events) > 0 else None
+        last_time = 0.0
+        if last_event is not None:
+            print(self.prev_events)
+            self.speed = last_event.speed
+            self.distance = last_event.distance
+            if last_event.event_type == self.ACCELERATE:
+                self.is_accelerating = True
+            else:
+                self.is_accelerating = False
+            last_time = last_event.timestamp
+
+        for event in events:
+            self.update(event.timestamp - last_time)
+            print(f"Run update: {event.timestamp - last_time}")
+            print(f"New speed and dist: S: {self.speed} D: {self.distance}")
+            event.speed = self.speed
+            event.distance = self.distance
+
+            print(f'Set speed and dist: {event}')
+            last_time = event.timestamp
+            if event.event_type == self.ACCELERATE:
+                self.is_accelerating = True
+            else:
+                self.is_accelerating = False
+            self.prev_events.append(event)
+
+        self.update(gametime - last_time)
 
     def get_past_posn(self, gametime):
         # Find first event before the given gametime

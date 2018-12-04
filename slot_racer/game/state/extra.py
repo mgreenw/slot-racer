@@ -38,11 +38,14 @@ class Event(object):
     - timestamp: The time the event happened
     - car: the car for which this event is getting created
     """
-    def __init__(self, event_type, car, timestamp):
+    def __init__(self, event_type, timestamp, speed=0.0, distance=0.0):
         self.event_type = event_type
         self.timestamp  = timestamp
-        self.speed      = car.speed
-        self.distance   = car.distance
+        self.speed      = speed
+        self.distance   = distance
+
+    def __repr__(self):
+        return f'<Event type={self.event_type}, timestamp={self.timestamp}, speed={self.speed}, distance={self.distance}>'
 
 
 def log(test, msg):

@@ -154,14 +154,18 @@ class Renderer(object):
                 pyxel.circ(x, y, 1, 5)
 
             for index, car in enumerate(self.track.participants):
-                x, y = car.get_posn()
-                prev_x, prev_y = car.get_past_posn(self.game_time - 0.1)
+                x, y = 0, 0
+                color = 0
+                if self.client.id == index:
+                    x, y = car.get_posn()
+                    color = 9
+                else:
+                    x, y = car.get_past_posn(self.game_time - 0.1)
+
                 x = x + 128
                 y = 72 - y
                 self.stored.append((x, y))
-                color = 9 if self.client.id == index else 11
                 pyxel.circ(x, y, 2, color)
-                pyxel.circ(prev_x + 128, 72 - prev_y, 2, 0)
                 pyxel.text(10, 10 * (index + 1), f'{car.speed}', 0)
                 if car.fallen:
                     self.explode(x, y, car)

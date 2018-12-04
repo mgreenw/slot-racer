@@ -6,7 +6,7 @@
 # package imports
 import asyncio
 import threading
-from ..game import state
+from ..game import state, Event
 from .renderer import Renderer
 from .socket import start, Socket
 from ..communication import Serializer
@@ -96,12 +96,27 @@ class Client(object):
         self.renderer.switch_to_countdown(time)
         for car_id in self.car_ids:
             self.renderer.track.add_participant(state.Car(car_id))
+
+            print(f"ADDING {car_id}. Self: {self.id}")
         self.renderer.local_car = self.renderer.track.get_car_by_id(self.id)
         print(f'Begin countdown! {time}')
 
     def server_update(self, data):
         server_time, events = data
         if len(events) > 0:
-            print(f'Receive server update: {events}')
+            events = [(car_id, event) for car_id, event in events if car_id != self.id]
+
+            # Todo: generalize this for many cars
+            if len(events) > 0:
+                car_id, event = events[0]
+                car = self.renderer.track.get_car_by_id(car_id)
+                events_to_insert = []
+                for car_id, event in events:
+                    event_type, timestamp = event
+                    e = Event(event_type, timestamp)
+                    events_to_insert.append(e)
+
+                car.append_events(events_to_insert, self.renderer.game_time)
+                print(f'Receive server update: {events}')
 
 
