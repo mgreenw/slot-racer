@@ -94,11 +94,16 @@ class Client(object):
         self.renderer.local_car = self.renderer.track.get_car_by_id(self.my_car)
         print(f'Begin countdown! {time}')
 
+    def server_update(self, data):
+        print(f'Receive server update: {data}')
+
+
     def handle_message(self, message):
         subjects = dict(
             ping=self.ping,
             cars=self.cars,
-            begin_countdown=self.begin_countdown
+            begin_countdown=self.begin_countdown,
+            update=self.server_update
         )
 
         handler = subjects.get(message.subject, None)
