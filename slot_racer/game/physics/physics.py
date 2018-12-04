@@ -1,5 +1,5 @@
 # Nathan Allen
-# 27 November 2018
+# 3 December 2018
 
 import math
 
@@ -25,7 +25,6 @@ def threshold(car):
     else:
         threshold = 1 + (c * math.cos(scale_fn(d, switch)))
     return threshold
-
 
 def calculate_posn(car):
     c = RATIO if car.id == 0 else 1 - RATIO
@@ -54,7 +53,7 @@ def calculate_speed(speed, accellerating, timestep):
         return max(speed - acceleration, 0)
 
 def calculate_distance(distance, speed, timestep):
-    return distance + (speed * timestep) #TODO: temporary, might want to use method similar to in `falling`
+    return distance + (speed * timestep)
 
 def car_timestep(car, timestep):
     speed = calculate_speed(car.speed, car.is_accelerating, timestep)
