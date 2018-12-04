@@ -68,42 +68,22 @@ class Car(object):
         print(f'Stop Accelerating: {self.prev_events[-1]}')
         return self.prev_events[-1]
 
+
+
     def get_posn(self):
         return physics.calculate_posn(self)
 
-    def fall(self, speed, distance):
-        self.fallen = FallData(speed, distance)
+    def fall(self, speed, distance, gametime):
+        self.is_accelerating = False
+        self.fallen = FallData(speed, distance, gametime)
+        self.prev_events.append(Event('explode', gametime, 0, self.distance))
+        return self.prev_events[-1]
 
     def append_events(self, events, gametime):
         self.prev_events.extend(events)
         self.update(gametime)
-        # last_event = self.prev_events[-1] if len(self.prev_events) > 0 else None
-        # last_time = 0.0
-        # if last_event is not None:
-        #     self.speed = last_event.speed
-        #     self.distance = last_event.distance
-        #     if last_event.event_type == self.ACCELERATE:
-        #         self.is_accelerating = True
-        #     else:
-        #         self.is_accelerating = False
-        #     last_time = last_event.timestamp
 
-        # for event in events:
-        #     self.update(event.timestamp)
-        #     event.speed = self.speed
-        #     event.distance = self.distance
-
-        #     last_time = event.timestamp
-        #     print(f'Insert other client event: {event}')
-        #     if event.event_type == self.ACCELERATE:
-        #         self.is_accelerating = True
-        #     else:
-        #         self.is_accelerating = False
-        #     self.prev_events.append(event)
-
-        # self.update(gametime)
-
-    def get_past_posn(self, gametime):
+    def get_past_car(self, gametime):
         # Find first event before the given gametime
         last_event = None
         for event in reversed(self.prev_events):
@@ -112,6 +92,7 @@ class Car(object):
                 break
 
         prev_self = copy.deepcopy(self)
+        prev_self.fallen = None
 
         # Set the car's to where it was at that event
         if last_event:
@@ -119,10 +100,14 @@ class Car(object):
             prev_self.distance = last_event.distance
             if last_event.event_type == self.ACCELERATE:
                 prev_self.is_accelerating = True
+            elif last_event.event_type == 'explode' and gametime - last_event.timestamp < 1.0:
+                prev_self.is_accelerating = False
+                print("explode", last_event)
+                prev_self.fall(last_event.speed, last_event.distance, last_event.timestamp)
             else:
                 prev_self.is_accelerating = False
         prev_self.update(gametime)
-        return physics.calculate_posn(prev_self)
+        return prev_self
 
     def update(self, gametime):
         """Gets the new speed and distance of the car.
@@ -131,29 +116,29 @@ class Car(object):
             allows us to restart the car from where it fell off on the track.
         - Otherwise we update our car with the new speed and distance
         """
-        last_event = None
-        timestep = gametime
-        if len(self.prev_events) > 0:
-            last_event = self.prev_events[-1]
-            self.speed = last_event.speed
-            self.distance = last_event.distance
-            timestep = gametime - last_event.timestamp
-            if last_event.event_type == self.ACCELERATE:
-                self.is_accelerating = True
-            else:
-                self.is_accelerating = False
 
-        speed, distance = physics.car_timestep(self, timestep)
         if physics.falling(self):
             self.speed = 0
-            self.fall(speed, distance)
+            self.fall(self.speed, self.distance, gametime)
         elif self.fallen:
-            self.fallen.explosion_time += timestep
-            if self.fallen.explosion_time > 1:
+            if gametime > self.fallen.explosion_end:
                 self.fallen = None
         else:
-            self.speed, self.distance = speed, distance
+            last_event = None
+            timestep = gametime
+            if len(self.prev_events) > 0:
+                last_event = self.prev_events[-1]
+                self.speed = last_event.speed
+                self.distance = last_event.distance
+                timestep = gametime - last_event.timestamp
+                if last_event.event_type == self.ACCELERATE:
+                    self.is_accelerating = True
+                else:
+                    self.is_accelerating = False
 
+            speed, distance = physics.car_timestep(self, timestep)
+            self.speed = speed
+            self.distance = distance
 
 class Track(object):
     """A Track is what we will race our Cars on

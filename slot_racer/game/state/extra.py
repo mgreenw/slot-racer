@@ -17,10 +17,11 @@ class FallData(object):
     - speed: Speed of the car when it fell off
     - distance: R value for the car when it falls off
     """
-    def __init__(self, speed, distance):
+    def __init__(self, speed, distance, gametime):
         self.speed    = speed
         self.distance = distance
-        self.explosion_time = 0
+        self.explosion_end = gametime + 1.0
+        self.sent_to_server = False
         self.img_sizes = [
             (3, 3), (9, 8), (11, 14), (14, 24), (15, 19), (14, 19),
             (16, 21), (16, 22), (16, 22), (18, 25), (15, 21), (13, 20),
