@@ -73,7 +73,8 @@ class Client(object):
         subjects = dict(
             ping=self.ping,
             cars=self.cars,
-            begin_countdown=self.begin_countdown
+            begin_countdown=self.begin_countdown,
+            update=self.server_update
         )
         handler = subjects.get(message.subject, None)
         if handler is None:
@@ -96,5 +97,8 @@ class Client(object):
             self.renderer.track.add_participant(state.Car(car_id))
         self.renderer.local_car = self.renderer.track.get_car_by_id(self.my_car)
         print(f'Begin countdown! {time}')
+
+    def server_update(self, data):
+        print(f'Receive server update: {data}')
 
 

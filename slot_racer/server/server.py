@@ -9,6 +9,8 @@ import asyncio
 import websockets
 from ..game import Car, Track
 from ..communication import Serializer
+from datetime import datetime, timedelta
+from threading import Lock
 
 
 class Server(object):
@@ -38,12 +40,30 @@ class Server(object):
         self.listen_time = 0.01
         self.state       = ServerState()
         self.serializer  = Serializer()
+        self.track       = Track()
+        self.events      = []
+        self.events_lock = Lock()
 
     def start_server(self):
         self.server = websockets.serve(self.listener, self.host, self.port)
         print(f'Listening at {self.host}:{self.port}...')
+        asyncio.ensure_future(self.loop())
         asyncio.get_event_loop().run_until_complete(self.server)
         asyncio.get_event_loop().run_forever()
+
+    async def loop(self):
+        while True:
+            if self.state.start_time is not None:
+                now = datetime.now()
+                if now > self.state.start_time:
+                    game_time = (now - self.state.start_time).total_seconds()
+                    events = []
+                    with self.events_lock:
+                        events = self.events
+                        self.events = []
+
+                    await self.update_all('update', (game_time, events))
+            await asyncio.sleep(0.05)
 
     async def send(self, client, subject, data=None):
         message = self.serializer.compose(subject, data)
@@ -51,9 +71,7 @@ class Server(object):
 
     async def update_all(self, subject, data=None):
         message = self.serializer.compose(subject, data)
-        for skt in self.state.clients:
-            await skt.send(message)
-        await asyncio.sleep(self.update_time)
+        await asyncio.wait([skt.send(message) for skt in self.state.clients])
 
     async def listener(self, skt, path):
         try:
@@ -81,6 +99,17 @@ class Server(object):
             self.state.remove_client(skt)
             await self.update_all(f'cars {str(self.state.get_ids())}')
 
+    async def read_message(self, client, message):
+        parsed = self.serializer.read(message)
+        if parsed.subject == 'start_game':
+            await self.begin_countdown()
+            for car in self.state.clients.values():
+                self.track.add_participant(Car(car.id))
+        else:
+            with self.events_lock:
+                self.events.append((client.id, parsed))
+        print(f'Received message:\nClient: {client.id}\nSubject: {parsed.subject}\nData: {parsed.data}\n')
+
     async def send_countdown(self, client):
         t = 5 - client.latency
         await self.send(client.socket, 'begin_countdown', t)
@@ -88,6 +117,7 @@ class Server(object):
     async def begin_countdown(self):
         if self.state.mode is not 'LOBBY':
             return
+        self.state.start_time = datetime.now() + timedelta(seconds=5)
         await asyncio.wait([self.send_countdown(client) for client in self.state.clients.values()])
 
     async def ping(self, skt):
@@ -125,6 +155,10 @@ class ServerState(object):
         self.clients = {}
         self.track   = Track()
         self.max_id  = 0
+        self.start_time = None
+
+    def get_update(self):
+        pass
 
     def add_client(self, client_socket, client_latency):
         client = Client(self.max_id, client_socket, client_latency)

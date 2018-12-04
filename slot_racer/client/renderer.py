@@ -100,17 +100,16 @@ class Renderer(object):
             now = datetime.now()
             dt = now - self.prev_time
             self.prev_time = now
+            game_time = (now - self.start_time).total_seconds()
 
             space_down = pyxel.btn(glfw.KEY_SPACE)
             accelerating = self.local_car.is_accelerating
 
             if space_down and not accelerating:
-                total_time = (now - self.start_time).total_seconds()
-                self.client.send('accelerate', total_time)
+                self.client.send('accelerate', game_time)
                 self.local_car.accelerate()
             elif not space_down and accelerating:
-                total_time = (now - self.start_time).total_seconds()
-                self.client.send('stop_accelerating', total_time)
+                self.client.send('stop_accelerating', game_time)
                 self.local_car.stop_accelerating()
 
                 # Update the track using the delta
