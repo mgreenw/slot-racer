@@ -44,7 +44,6 @@ class Client(object):
         self.protocol      = get_protocol()
         self.serializer    = Serializer()
         self.running       = True
-        self.my_car        = None
         self.car_ids       = None
 
     def _run_socket(self, host, port):
@@ -84,14 +83,14 @@ class Client(object):
     def cars(self, data):
         my_car, all_cars = data
         self.car_ids = all_cars
-        self.my_car = my_car
-        print(f'Got new car list!\nMy id: {self.my_car}\nList: {self.car_ids}')
+        self.id = my_car
+        print(f'Got new car list!\nMy id: {self.id}\nList: {self.car_ids}')
 
     def begin_countdown(self, time):
         self.renderer.switch_to_countdown(time)
         for car_id in self.car_ids:
             self.renderer.track.add_participant(state.Car(car_id))
-        self.renderer.local_car = self.renderer.track.get_car_by_id(self.my_car)
+        self.renderer.local_car = self.renderer.track.get_car_by_id(self.id)
         print(f'Begin countdown! {time}')
 
     def handle_message(self, message):
