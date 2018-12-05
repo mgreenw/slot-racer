@@ -1,5 +1,5 @@
 # Nathan Allen
-# 27 November 2018
+# 3 December 2018
 
 import math
 
@@ -10,7 +10,7 @@ MAX_SPEED = 0.75
 BIG_WIDTH = TRACK_WIDTH / 2.0 + 2.0 * math.sqrt(2) * SOCKET_WIDTH
 SMALL_WIDTH = BIG_WIDTH - 4.0 * SOCKET_WIDTH - 4.0 * math.sqrt(2) * SOCKET_WIDTH
 RATIO = SMALL_WIDTH / (SMALL_WIDTH + BIG_WIDTH)
-ACCELLERATION = 0.2
+ACCELERATION = 0.2
 
 
 def falling(car):
@@ -25,7 +25,6 @@ def threshold(car):
     else:
         threshold = 1 + (c * math.cos(scale_fn(d, switch)))
     return threshold
-
 
 def calculate_posn(car):
     c = RATIO if car.id == 0 else 1 - RATIO
@@ -46,17 +45,24 @@ def scale_first_loop(d, c):
 def scale_second_loop(d, c):
     return math.pi / 2.0 + ((d - c) * math.pi) / (1 - c)
 
-def calculate_speed(speed, accellerating, timestep):
-    acceleration = ACCELLERATION * timestep
-    if accellerating:
+def calculate_speed(speed, accelerating, timestep):
+    acceleration = ACCELERATION * timestep
+    if accelerating:
         return min(speed + acceleration, MAX_SPEED)
     else:
         return max(speed - acceleration, 0)
 
-def calculate_distance(distance, speed, timestep):
-    return distance + (speed * timestep) #TODO: temporary, might want to use method similar to in `falling`
+def calculate_distance(distance, initial_speed, accelerating, timestep):
+    if accelerating:
+        return distance + (initial_speed * timestep) + .5 * ACCELERATION * math.pow(timestep, 2)
+    else:
+        time_until_stop = initial_speed / ACCELERATION
+        if time_until_stop > timestep:
+            return distance + (initial_speed * timestep) - .5 * ACCELERATION * math.pow(timestep, 2)
+        else:
+            return distance + (initial_speed * time_until_stop) - .5 * ACCELERATION * math.pow(time_until_stop, 2)
 
 def car_timestep(car, timestep):
+    distance = calculate_distance(car.distance, car.speed, car.is_accelerating, timestep)
     speed = calculate_speed(car.speed, car.is_accelerating, timestep)
-    distance = calculate_distance(car.distance, car.speed, timestep)
     return speed, distance
