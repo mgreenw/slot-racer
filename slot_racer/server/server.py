@@ -63,7 +63,7 @@ class Server(object):
                     self.game_time = (now - self.state.start_time).total_seconds()
                     self.track.update_all(self.game_time)
                     winner = self.track.check_winner()
-                    if winner is not None and self.winner is not None:
+                    if winner is not None and self.winner is None:
                         self.winner = winner
                         await self.update_all('winner', winner.id)
 
