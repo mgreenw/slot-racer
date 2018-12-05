@@ -35,7 +35,7 @@ class Button(object):
     def render(self):
         pyxel.rect(self.x, self.y, self.x + self.w, self.y + self.h, self.background_color)
         pyxel.text(self.x + 7, self.y + 5, self.text, self.text_color)
-        if pyxel.btnr(2000) and pyxel.mouse_x > self.x and pyxel.mouse_x < self.x + self.w and pyxel.mouse_y > self.y and pyxel.mouse_y < self.y + self.h:
+        if pyxel.btn(2000) and pyxel.mouse_x > self.x and pyxel.mouse_x < self.x + self.w and pyxel.mouse_y > self.y and pyxel.mouse_y < self.y + self.h:
             self.on_press()
 
     def set_on_press(self, on_press):
@@ -64,10 +64,10 @@ class Renderer(object):
         self.render_state = RenderState.MENU
 
         # Setup buttons
-        self.play_button = Button('Play', 60, 60, 30, 15, 4, 9)
-        # self.play_button.set_on_press(self.switch_to_countdown())
+        self.play_button = Button('Play', 60, 100, 30, 15, 4, 9)
+        self.play_button.set_on_press(lambda: self.client.send('start_game'))
 
-        self.quit_button = Button('Quit', 170, 60, 30, 15, 4, 9)
+        self.quit_button = Button('Quit', 170, 100, 30, 15, 4, 9)
         self.quit_button.set_on_press(lambda: pyxel.quit())
 
         self.start_time = None
@@ -92,11 +92,7 @@ class Renderer(object):
         if not isinstance(self.render_state, RenderState):
             self.render_state = RenderState.MENU
 
-        if self.render_state is RenderState.MENU:
-            if pyxel.btn(glfw.KEY_ENTER):
-                self.client.send('start_game')
-        elif self.render_state is RenderState.PLAY:
-
+        if self.render_state is RenderState.PLAY:
             now = datetime.now()
             if self.start_time is None:
                 self.start_time = now
@@ -133,6 +129,9 @@ class Renderer(object):
         if self.render_state is RenderState.MENU:
             # Play button or quit
             pyxel.text(110, 10, 'SLOT RACER', 0)
+            # pyxel.text(100, 24, 'People in Lobby:', 0)
+            # for index, player in enumerate([]): #TODO: store users in lobby somewhere and access them here
+            #     pyxel.text(104, 30 + index * 6, f'{index}: {player}', 0)
             self.play_button.render()
             self.quit_button.render()
         elif self.render_state is RenderState.LOBBY:
@@ -140,7 +139,6 @@ class Renderer(object):
             # Allow users to join a server
             pass
         elif self.render_state is RenderState.PLAY:
-
             for (x, y) in self.track.track_0_points[:300]:
                 pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 3)
 
@@ -154,6 +152,10 @@ class Renderer(object):
                 pyxel.rect(x + 128, 72 - y, x + 128, 72 - y, 3)
 
             pyxel.text(110, 10, 'GO GO GO!', 0)
+
+            pyxel.text(160, 10, 'Press SPACE to', 0)
+            pyxel.text(160, 16, 'accelerate. Don\'t', 0)
+            pyxel.text(160, 22, 'go too fast, or KABOOM!', 0)
 
             for (x, y) in self.stored:
                 pyxel.circ(x, y, 1, 5)
@@ -173,7 +175,7 @@ class Renderer(object):
                 y = 72 - y
                 self.stored.append((x, y))
                 pyxel.circ(x, y, 2, color)
-                pyxel.text(10, 10 * (index + 1), f'{car.speed}', 0)
+                pyxel.text(10, 10 * (index + 1), f'{math.floor(car.distance) + 1}', 0)
                 if car.fallen:
                     self.explode(x, y, car, gametime)
                     car.speed = 0

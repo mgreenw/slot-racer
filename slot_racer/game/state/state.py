@@ -68,8 +68,6 @@ class Car(object):
         print(f'Stop Accelerating: {self.prev_events[-1]}')
         return self.prev_events[-1]
 
-
-
     def get_posn(self):
         return physics.calculate_posn(self)
 
