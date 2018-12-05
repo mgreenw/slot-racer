@@ -126,9 +126,9 @@ class Renderer(object):
         if self.render_state is RenderState.MENU:
             # Play button or quit
             pyxel.text(110, 10, 'SLOT RACER', 0)
-            pyxel.text(100, 24, 'People in Lobby:', 0)
-            for index, player in enumerate([]): #TODO: store users in lobby somewhere and access them here
-                pyxel.text(104, 30 + index * 6, f'{index}: {player}', 0)
+            # pyxel.text(100, 24, 'People in Lobby:', 0)
+            # for index, player in enumerate([]): #TODO: store users in lobby somewhere and access them here
+            #     pyxel.text(104, 30 + index * 6, f'{index}: {player}', 0)
             self.play_button.render()
             self.quit_button.render()
         elif self.render_state is RenderState.LOBBY:
@@ -164,7 +164,7 @@ class Renderer(object):
                 self.stored.append((x, y))
                 color = 9 if self.client.id == index else 11
                 pyxel.circ(x, y, 2, color)
-                pyxel.text(10, 10 * (index + 1), f'{car.speed}', 0)
+                pyxel.text(10, 10 * (index + 1), f'{math.floor(car.distance) + 1}', 0)
                 if car.fallen:
                     self.explode(x, y, car)
                     car.speed = 0
