@@ -132,6 +132,7 @@ class Server(object):
     async def begin_countdown(self):
         if self.state.mode is not 'LOBBY':
             return
+        self.state.mode = 'PLAY'
         for client in self.state.clients.values():
             self.track.add_participant(Car(client.id))
         self.state.start_time = datetime.now() + timedelta(seconds=5)
