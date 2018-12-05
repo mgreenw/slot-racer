@@ -17,10 +17,11 @@ class FallData(object):
     - speed: Speed of the car when it fell off
     - distance: R value for the car when it falls off
     """
-    def __init__(self, speed, distance):
+    def __init__(self, speed, distance, gametime):
         self.speed    = speed
         self.distance = distance
-        self.explosion_time = 0
+        self.explosion_end = gametime + 1.0
+        self.sent_to_server = False
         self.img_sizes = [
             (3, 3), (9, 8), (11, 14), (14, 24), (15, 19), (14, 19),
             (16, 21), (16, 22), (16, 22), (18, 25), (15, 21), (13, 20),
@@ -38,11 +39,14 @@ class Event(object):
     - timestamp: The time the event happened
     - car: the car for which this event is getting created
     """
-    def __init__(self, event_type, car):
+    def __init__(self, event_type, timestamp, speed=0.0, distance=0.0):
         self.event_type = event_type
-        self.timestamp  = datetime.datetime.now()
-        self.speed      = car.speed
-        self.distance   = car.distance
+        self.timestamp  = timestamp
+        self.speed      = speed
+        self.distance   = distance
+
+    def __repr__(self):
+        return f'<Event type={self.event_type}, timestamp={self.timestamp}, speed={self.speed}, distance={self.distance}>'
 
 
 def log(test, msg):

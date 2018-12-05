@@ -7,7 +7,7 @@
 import time
 import asyncio
 import websockets
-from ..game import Car, Track
+from ..game import Car, Track, Event
 from ..communication import Serializer
 from datetime import datetime, timedelta
 from threading import Lock
@@ -43,6 +43,7 @@ class Server(object):
         self.track       = Track()
         self.events      = []
         self.events_lock = Lock()
+        self.game_time   = 0
 
     def start_server(self):
         self.server = websockets.serve(self.listener, self.host, self.port)
@@ -52,17 +53,22 @@ class Server(object):
         asyncio.get_event_loop().run_forever()
 
     async def loop(self):
+        prev = None
         while True:
             if self.state.start_time is not None:
                 now = datetime.now()
                 if now > self.state.start_time:
-                    game_time = (now - self.state.start_time).total_seconds()
+                    dt = (now - prev).total_seconds()
+                    self.track.update_all(dt)
+                    self.game_time = (now - self.state.start_time).total_seconds()
                     events = []
                     with self.events_lock:
                         events = self.events
                         self.events = []
 
-                    await self.update_all('update', (game_time, events))
+                    await self.update_all('update', (self.game_time, events))
+                else:
+                    prev = self.state.start_time
             await asyncio.sleep(0.05)
 
     async def send(self, client, subject, data=None):
@@ -81,16 +87,18 @@ class Server(object):
 
             # Add the client to the server state and tell everyone about it
             me = self.state.add_client(skt, latency)
-            await self.update_all('cars', (me, self.state.get_ids()))
+            client = self.state.clients[skt]
+
+            # Update all with new car list. In each case, give
+            # the client their own id
+            all_cars = self.state.get_ids()
+            for client_socket in self.state.clients:
+                c = self.state.clients[client_socket]
+                await self.send(client_socket, 'cars', (c.id, all_cars))
 
             # start listening for messages
             async for message in skt:
-                parsed = self.serializer.read(message)
-                if parsed.subject == 'start_game':
-                    await self.begin_countdown()
-                print(f'Received message:\nClient: {self.state.clients[skt].id}'
-                      f'\nSubject: {parsed.subject}\nData: {parsed.data}\n')
-                await asyncio.sleep(self.listen_time)
+                await self.read_message(client, message)
 
         except websockets.exceptions.ConnectionClosed as e:
             print(f'Connection with Client '
@@ -103,12 +111,14 @@ class Server(object):
         parsed = self.serializer.read(message)
         if parsed.subject == 'start_game':
             await self.begin_countdown()
-            for car in self.state.clients.values():
-                self.track.add_participant(Car(car.id))
         else:
+            car = self.track.get_car_by_id(client.id)
+            print("PARSED", parsed)
+            timestamp, speed, distance = parsed.data
+            event = Event(parsed.subject, timestamp, speed, distance)
+            car.append_events([event], self.game_time)
             with self.events_lock:
                 self.events.append((client.id, parsed))
-        print(f'Received message:\nClient: {client.id}\nSubject: {parsed.subject}\nData: {parsed.data}\n')
 
     async def send_countdown(self, client):
         t = 5 - client.latency
@@ -117,6 +127,8 @@ class Server(object):
     async def begin_countdown(self):
         if self.state.mode is not 'LOBBY':
             return
+        for client in self.state.clients.values():
+            self.track.add_participant(Car(client.id))
         self.state.start_time = datetime.now() + timedelta(seconds=5)
         await asyncio.wait([self.send_countdown(client) for client in self.state.clients.values()])
 
@@ -163,7 +175,6 @@ class ServerState(object):
     def add_client(self, client_socket, client_latency):
         client = Client(self.max_id, client_socket, client_latency)
         self.clients[client.socket] = client
-        self.track.add_participant(Car(client.id))
         self.max_id += 1
         return client.id
 

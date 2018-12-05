@@ -10,6 +10,7 @@ import math
 # local imports
 from .extra import FallData, Event
 from ..physics import physics
+import copy
 
 
 class Car(object):
@@ -43,60 +44,99 @@ class Car(object):
     """
 
     # global representations independent of each car
-    START             = "S"
-    ACCELERATE        = "A"
-    STOP_ACCELERATING = "R"
+    ACCELERATE        = "accelerate"
+    STOP_ACCELERATING = "stop_accelerating"
 
     def __init__(self, idx, model=None):
         self.id              = idx
         self.speed           = 0
         self.distance        = 0
         self.is_accelerating = False
-        self.prev_events     = [Event(self.START, self)]
+        self.prev_events     = []
         self.fallen          = None
         self.model           = model
 
-    def accelerate(self):
+    def accelerate(self, game_time):
         self.is_accelerating = True
-        self.prev_events.append(Event(self.ACCELERATE, self))
+        self.prev_events.append(Event(self.ACCELERATE, game_time, self.speed, self.distance))
+        print(f'Accelerate: {self.prev_events[-1]}')
         return self.prev_events[-1]
 
-    def stop_accelerating(self):
+    def stop_accelerating(self, game_time):
         self.is_accelerating = False
-        self.prev_events.append(Event(self.STOP_ACCELERATING, self))
+        self.prev_events.append(Event(self.STOP_ACCELERATING, game_time, self.speed, self.distance))
+        print(f'Stop Accelerating: {self.prev_events[-1]}')
         return self.prev_events[-1]
 
     def get_posn(self):
         return physics.calculate_posn(self)
 
-    def fall(self, speed, distance):
-        self.fallen = FallData(speed, distance)
+    def fall(self, speed, distance, gametime):
+        self.is_accelerating = False
+        self.fallen = FallData(speed, distance, gametime)
+        self.prev_events.append(Event('explode', gametime, 0, self.distance))
+        return self.prev_events[-1]
 
     def append_events(self, events, gametime):
         self.prev_events.extend(events)
-        self.speed    = events[-1].speed
-        self.distance = events[-1].distance
-        timestep = gametime - events[-1].timestamp
-        self.update(timestep)
+        self.update(gametime)
 
-    def update(self, timestep):
+    def get_past_car(self, gametime):
+        # Find first event before the given gametime
+        last_event = None
+        for event in reversed(self.prev_events):
+            if event.timestamp < gametime:
+                last_event = event
+                break
+
+        prev_self = copy.deepcopy(self)
+        prev_self.fallen = None
+
+        # Set the car's to where it was at that event
+        if last_event:
+            prev_self.speed = last_event.speed
+            prev_self.distance = last_event.distance
+            if last_event.event_type == self.ACCELERATE:
+                prev_self.is_accelerating = True
+            elif last_event.event_type == 'explode' and gametime - last_event.timestamp < 1.0:
+                prev_self.is_accelerating = False
+                print("explode", last_event)
+                prev_self.fall(last_event.speed, last_event.distance, last_event.timestamp)
+            else:
+                prev_self.is_accelerating = False
+        prev_self.update(gametime)
+        return prev_self
+
+    def update(self, gametime):
         """Gets the new speed and distance of the car.
         - If it has fallen off the track,
             we reset the speed to 0 and leave the distance unchanged. This
             allows us to restart the car from where it fell off on the track.
         - Otherwise we update our car with the new speed and distance
         """
-        speed, distance = physics.car_timestep(self, timestep)
+
         if physics.falling(self):
             self.speed = 0
-            self.fall(speed, distance)
+            self.fall(self.speed, self.distance, gametime)
         elif self.fallen:
-            self.fallen.explosion_time += timestep
-            if self.fallen.explosion_time > 1:
+            if gametime > self.fallen.explosion_end:
                 self.fallen = None
         else:
-            self.speed, self.distance = speed, distance
+            last_event = None
+            timestep = gametime
+            if len(self.prev_events) > 0:
+                last_event = self.prev_events[-1]
+                self.speed = last_event.speed
+                self.distance = last_event.distance
+                timestep = gametime - last_event.timestamp
+                if last_event.event_type == self.ACCELERATE:
+                    self.is_accelerating = True
+                else:
+                    self.is_accelerating = False
 
+            speed, distance = physics.car_timestep(self, timestep)
+            self.speed = speed
+            self.distance = distance
 
 class Track(object):
     """A Track is what we will race our Cars on
@@ -153,15 +193,13 @@ class Track(object):
             if car.id == idx:
                 return car
 
-    def update_all(self, timestep):
+    def update_all(self, gametime):
         if self.participants:
-            cur_ts = 0
-            while cur_ts < timestep:
-                for car in self.participants:
-                    car.update(timestep)
-                    if car.distance > self.DEF_LAP:
-                        return car.id
-                cur_ts += self.DEF_TS
+            for car in self.participants:
+                car.update(gametime)
+            # CHECK FALLEN CARS FOR COLLISIONS
+            # CHECK FOR WINNERS
+            # Maybe store a cap on the laps we need to compete
         else:
             raise Exception("There are no cars on the track!")
 
