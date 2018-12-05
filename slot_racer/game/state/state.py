@@ -193,6 +193,17 @@ class Track(object):
             if car.id == idx:
                 return car
 
+    def check_winner(self):
+        winner = None
+        for car in self.participants:
+            if car.distance > 9:
+                if winner is None:
+                    winner = car
+                elif car.distance > winner.distance:
+                    winner = car
+
+        return winner
+
     def update_all(self, gametime):
         if self.participants:
             for car in self.participants:
