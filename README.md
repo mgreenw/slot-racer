@@ -1,16 +1,15 @@
-# Team Name
-NPM
+# Slot Racer
 
-# Authors
+### Authors
 - Nathan Allen
 - Pulkit Jain
 - Max Greenwald
 
-# Slot Racer
+### Slot Racer
 This is a game that allows multiple players to play slot-car racing against
 one another
 
-## Setup
+### Setup
 
 Use Python 3.7.1: `python --version`
 Setup a virtual env: `python -m venv ./venv`
