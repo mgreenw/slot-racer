@@ -56,15 +56,15 @@ class Car(object):
         self.fallen          = None
         self.model           = model
 
-    def accelerate(self, game_time):
+    def accelerate(self, gametime):
         self.is_accelerating = True
-        self.prev_events.append(Event(self.ACCELERATE, game_time, self.speed, self.distance))
+        self.prev_events.append(Event(self.ACCELERATE, gametime, self.speed, self.distance))
         print(f'Accelerate: {self.prev_events[-1]}')
         return self.prev_events[-1]
 
-    def stop_accelerating(self, game_time):
+    def stop_accelerating(self, gametime):
         self.is_accelerating = False
-        self.prev_events.append(Event(self.STOP_ACCELERATING, game_time, self.speed, self.distance))
+        self.prev_events.append(Event(self.STOP_ACCELERATING, gametime, self.speed, self.distance))
         print(f'Stop Accelerating: {self.prev_events[-1]}')
         return self.prev_events[-1]
 

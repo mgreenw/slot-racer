@@ -43,7 +43,7 @@ class Server(object):
         self.track       = Track()
         self.events      = []
         self.events_lock = Lock()
-        self.game_time   = 0
+        self.gametime   = 0
         self.winner      = None
 
     def start_server(self):
@@ -60,8 +60,8 @@ class Server(object):
                 now = datetime.now()
                 if now > self.state.start_time:
                     dt = (now - prev).total_seconds()
-                    self.game_time = (now - self.state.start_time).total_seconds()
-                    self.track.update_all(self.game_time)
+                    self.gametime = (now - self.state.start_time).total_seconds()
+                    self.track.update_all(self.gametime)
                     winner = self.track.check_winner()
                     if winner is not None and self.winner is None:
                         self.winner = winner
@@ -72,7 +72,7 @@ class Server(object):
                         events = self.events
                         self.events = []
 
-                    await self.update_all('update', (self.game_time, events))
+                    await self.update_all('update', (self.gametime, events))
                 else:
                     prev = self.state.start_time
             await asyncio.sleep(0.05)
@@ -121,7 +121,7 @@ class Server(object):
             car = self.track.get_car_by_id(client.id)
             timestamp, speed, distance = parsed.data
             event = Event(parsed.subject, timestamp, speed, distance)
-            car.append_events([event], self.game_time)
+            car.append_events([event], self.gametime)
             with self.events_lock:
                 self.events.append((client.id, parsed))
 

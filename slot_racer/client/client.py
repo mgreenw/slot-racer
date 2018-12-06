@@ -118,7 +118,7 @@ class Client(object):
                     e = Event(event_type, timestamp, speed, distance)
                     events_to_insert.append(e)
 
-                car.append_events(events_to_insert, self.renderer.game_time)
+                car.append_events(events_to_insert, self.renderer.gametime)
 
     def winner(self, data):
         self.renderer.set_winner(data)
