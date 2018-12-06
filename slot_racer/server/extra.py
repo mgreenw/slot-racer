@@ -1,3 +1,5 @@
+from ..game import Track
+
 class Client(object):
     def __init__(self, id, socket, latency):
         self.id = id

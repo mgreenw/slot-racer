@@ -92,7 +92,7 @@ class Server(object):
         message = self.serializer.compose(subject, data)
         await asyncio.wait([skt.send(message) for skt in self.state.clients])
 
-    async def listener(self, skt):
+    async def listener(self, skt, path):
         """Listen for a new socket connection. On connection, update the server
         state and listen for messages from that client
         """
