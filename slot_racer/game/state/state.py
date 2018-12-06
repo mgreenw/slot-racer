@@ -1,13 +1,10 @@
-# Author: Pulkit Jain
+# Author: Max Greenwald, Nathan Allen, Pulkit Jain
 # 11/12/2018
 #
 # Module to define the game's state
 
 
 # package imports
-import math
-
-# local imports
 from .extra import FallData, Event
 from ..physics import physics
 import copy
@@ -15,10 +12,8 @@ import copy
 
 class Car(object):
     """A Car is what will be used to race others on our Track
-
     An important invariant in our definition is that a cars id is also its
     position on the track (innermost track at start has id = 0)
-
     It is defined by the following attributes:
     - id: This is the index of the car in the participants attribute of the
           track. NOTE invariant defined above
@@ -33,14 +28,19 @@ class Car(object):
           We use this data to process collisions and other effects
     - model: This is an image to represent our car. It defaults to a basic
           image if no choice on this is made by the user
-
     And the following behaviours:
-    - accelerate(): Changes the Car to reflect acceleration
-    - stop_accelerating: Changes the Car to reflect stoppage of acceleration
-    - fall(): Sets the fallen attribute in the case of a fall
-    - update(): Uses the physics engine to change the speed and distance of
-          the car based on it's current attributes (speed, distance,
-          is_accelerating. See physics module for further information)
+    - accelerate(gametime): Changes the Car to reflect acceleration
+    - stop_accelerating(gametime): Changes the Car to reflect stoppage of
+          acceleration
+    - fall(speed, distance, gametime): Sets the fallen attribute in the case of
+          a fall
+    - get_posn(): Returns the x, y coordinates for the distance of the car
+    - append_events(events, gametime): Update events from the server
+    - get_past_car(gametime): Useful in allowing us to create the lag we
+          wanted to simulate in order to allow for updates to not fall prey to
+          the actual lag that might exist in network
+    - update(gametime): Runs updates on the car periodically, allowing it to
+          behave as intended (falling, moving forward etc)
     """
 
     # global representations independent of each car
@@ -58,18 +58,17 @@ class Car(object):
 
     def accelerate(self, gametime):
         self.is_accelerating = True
-        self.prev_events.append(Event(self.ACCELERATE, gametime, self.speed, self.distance))
+        self.prev_events.append(Event(self.ACCELERATE, gametime, self.speed,
+                                      self.distance))
         print(f'Accelerate: {self.prev_events[-1]}')
         return self.prev_events[-1]
 
     def stop_accelerating(self, gametime):
         self.is_accelerating = False
-        self.prev_events.append(Event(self.STOP_ACCELERATING, gametime, self.speed, self.distance))
+        self.prev_events.append(Event(self.STOP_ACCELERATING, gametime,
+                                      self.speed, self.distance))
         print(f'Stop Accelerating: {self.prev_events[-1]}')
         return self.prev_events[-1]
-
-    def get_posn(self):
-        return physics.calculate_posn(self)
 
     def fall(self, speed, distance, gametime):
         self.is_accelerating = False
@@ -77,10 +76,15 @@ class Car(object):
         self.prev_events.append(Event('explode', gametime, 0, self.distance))
         return self.prev_events[-1]
 
+    def get_posn(self):
+        return physics.calculate_posn(self)
+
     def append_events(self, events, gametime):
         self.prev_events.extend(events)
         self.update(gametime)
 
+    # Key function in enforcing explosions;
+    # NOTE: never forget to call this before explosion
     def get_past_car(self, gametime):
         # Find first event before the given gametime
         last_event = None
@@ -89,6 +93,7 @@ class Car(object):
                 last_event = event
                 break
 
+        # Store a copy of your past to restore ourselves back to
         prev_self = copy.deepcopy(self)
         prev_self.fallen = None
 
@@ -98,15 +103,19 @@ class Car(object):
             prev_self.distance = last_event.distance
             if last_event.event_type == self.ACCELERATE:
                 prev_self.is_accelerating = True
-            elif last_event.event_type == 'explode' and gametime - last_event.timestamp < 1.0:
+            elif last_event.event_type == 'explode' and gametime - \
+                    last_event.timestamp < 1.0:
                 prev_self.is_accelerating = False
                 print("explode", last_event)
-                prev_self.fall(last_event.speed, last_event.distance, last_event.timestamp)
+                prev_self.fall(last_event.speed, last_event.distance,
+                               last_event.timestamp)
             else:
                 prev_self.is_accelerating = False
         prev_self.update(gametime)
         return prev_self
 
+    # Key function for motion/falling off track
+    # NOTE: always call this to update the car in regular circumstances
     def update(self, gametime):
         """Gets the new speed and distance of the car.
         - If it has fallen off the track,
@@ -114,7 +123,6 @@ class Car(object):
             allows us to restart the car from where it fell off on the track.
         - Otherwise we update our car with the new speed and distance
         """
-
         if physics.falling(self):
             self.speed = 0
             self.fall(self.speed, self.distance, gametime)
@@ -122,7 +130,6 @@ class Car(object):
             if gametime > self.fallen.explosion_end:
                 self.fallen = None
         else:
-            last_event = None
             timestep = gametime
             if len(self.prev_events) > 0:
                 last_event = self.prev_events[-1]
@@ -133,31 +140,37 @@ class Car(object):
                     self.is_accelerating = True
                 else:
                     self.is_accelerating = False
-
             speed, distance = physics.car_timestep(self, timestep)
             self.speed = speed
             self.distance = distance
 
+
 class Track(object):
     """A Track is what we will race our Cars on
-
     An important invariant in our definition is that the id of each car will be
     its index in our participants list
-
     It is defined by the following attributes:
     - participants: List of Cars participating in the race
+          NOTE: As this scales, we might consider migrating this to a dictionary
+                to allow for faster lookups and removals
     - lap_distance: The length of a lap. Used to measure the performance of
           different participants
     - model: An image representing the Track. In the future, this could become
           a resizable track using the renderer module
-
+    - track_0_points: Generates the different track points for the 0th car on
+          the track
+    - track_1_points: Generates the different track points for the 1st car on
+          the track
     And by the following behaviours:
     - add_participant(Car): Adds participants to the track and returns its
           index in our participants list
-    - update_all(): Run an update on every car. This is to be called at each
-          timestep
-    - resync(participants): Updates our list of participants with the more
-          authoritative representation of the server
+    - remove_participant(idx): Removes participants from the track
+    - get_car_by_id(idx): Returns the car corresponding to the entered id
+    - check_winner(): Returns the winner if there is one otherwise returns None
+    - update_all(gametime): Run an update on every car. This is to be called at
+          each timestep
+    - generate_track_points(car_id): Returns the points for the track in the
+          actual game visual (to be used by Renderer)
     """
 
     # global representations independent of each track
@@ -196,32 +209,25 @@ class Track(object):
     def check_winner(self):
         winner = None
         for car in self.participants:
-            if car.distance > 9:
+            if car.distance > self.DEF_LAP - 1:
                 if winner is None:
                     winner = car
                 elif car.distance > winner.distance:
                     winner = car
-
         return winner
 
     def update_all(self, gametime):
         if self.participants:
             for car in self.participants:
                 car.update(gametime)
-            # CHECK FALLEN CARS FOR COLLISIONS
-            # CHECK FOR WINNERS
-            # Maybe store a cap on the laps we need to compete
         else:
             raise Exception("There are no cars on the track!")
 
     @staticmethod
-    def generate_track_points(track_id):
-        dummy = Car(track_id)
+    def generate_track_points(car_id):
+        dummy = Car(car_id)
         points = []
         for _ in range(600):
             points.append(physics.calculate_posn(dummy))
             dummy.distance += (1 / 600)
-        # print(points)
         return points
-
-
