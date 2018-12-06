@@ -161,6 +161,7 @@ class Track(object):
           the track
     - track_1_points: Generates the different track points for the 1st car on
           the track
+
     And by the following behaviours:
     - add_participant(Car): Adds participants to the track and returns its
           index in our participants list
