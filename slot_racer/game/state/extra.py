@@ -1,4 +1,4 @@
-# Author: Pulkit Jain
+# Author: Nathan Allen, Max Greenwald, Pulkit Jain
 # 11/12/2018
 #
 # Module to define extraneous classes, exceptions, and functions the other
@@ -16,6 +16,11 @@ class FallData(object):
     It is defined by the following attributes:
     - speed: Speed of the car when it fell off
     - distance: R value for the car when it falls off
+    - explosion_end: Explosions are supposed to run for 1 unit time, this
+          allows us to enforce that
+    - sent_to_server: Allows us to represent whether the fall data was
+          communicated
+    - img_sizes: Enforces how the explosion should grow
     """
     def __init__(self, speed, distance, gametime):
         self.speed    = speed
@@ -37,7 +42,9 @@ class Event(object):
     - event_type: A character representing whether we accelerated or stopped
           accelerating
     - timestamp: The time the event happened
-    - car: the car for which this event is getting created
+    - speed: The speed of the car when this event occurred
+    - distance: The distance the car had already travelled when this event
+          occurred
     """
     def __init__(self, event_type, timestamp, speed=0.0, distance=0.0):
         self.event_type = event_type
@@ -46,7 +53,8 @@ class Event(object):
         self.distance   = distance
 
     def __repr__(self):
-        return f'<Event type={self.event_type}, timestamp={self.timestamp}, speed={self.speed}, distance={self.distance}>'
+        return f'<Event type={self.event_type}, timestamp={self.timestamp}, ' \
+               f'speed={self.speed}, distance={self.distance}>'
 
 
 def log(test, msg):
