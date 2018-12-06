@@ -11,9 +11,9 @@ one another
 
 ### Setup
 
-Use Python 3.7.1: `python --version`
-Setup a virtual env: `python -m venv ./venv`
-Then, activate the vevn: `source ./venv/bin/activate`
-Then, do `pip install -r requirements.txt`
+1. Use Python 3.7.1: `python --version`
+2. Setup a virtual env: `python -m venv ./venv`
+3. Then, activate the vevn: `source ./venv/bin/activate`
+4. Then, do `pip install -r requirements.txt`
 
 When done, deactivate the venv: `deactivate`
