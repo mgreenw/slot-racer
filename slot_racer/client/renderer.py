@@ -74,6 +74,10 @@ class Renderer(object):
         self.prev_time = None
         self.dt = 0.0
         self.game_time = 0.0
+        self.winner = None
+
+    def set_winner(self, winner):
+        self.winner = winner
 
     def switch_to_lobby(self):
         self.render_state = RenderState.LOBBY
@@ -119,6 +123,7 @@ class Renderer(object):
 
                 # Update the track using the delta
             self.track.update_all(self.game_time)
+
         elif self.render_state is RenderState.COUNTDOWN:
             if datetime.now() > self.synchronized_start:
                 self.switch_to_play()
@@ -153,9 +158,10 @@ class Renderer(object):
 
             pyxel.text(110, 10, 'GO GO GO!', 0)
 
-            pyxel.text(160, 10, 'Press SPACE to', 0)
-            pyxel.text(160, 16, 'accelerate. Don\'t', 0)
-            pyxel.text(160, 22, 'go too fast, or KABOOM!', 0)
+
+            pyxel.text(160, 5, 'Press SPACE to', 0)
+            pyxel.text(160, 11, 'accelerate. Don\'t', 0)
+            pyxel.text(160, 17, 'go too fast, or KABOOM!', 0)
 
             for (x, y) in self.stored:
                 pyxel.circ(x, y, 1, 5)
@@ -181,6 +187,14 @@ class Renderer(object):
                     car.speed = 0
 
             self.stored = self.stored[-20:]
+
+            if self.winner is not None:
+                if self.winner == self.local_car.id:
+                    pyxel.text(110, 120, 'YOU WIN!!!!', 0)
+                else:
+                    pyxel.text(110, 120, 'You lose :(', 0)
+            else:
+                pyxel.text(98, 120, 'First to 10 wins!', 0)
 
         elif self.render_state is RenderState.COUNTDOWN:
             time = (self.synchronized_start - datetime.now()).total_seconds()

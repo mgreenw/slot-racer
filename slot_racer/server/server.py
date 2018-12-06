@@ -44,6 +44,7 @@ class Server(object):
         self.events      = []
         self.events_lock = Lock()
         self.game_time   = 0
+        self.winner      = None
 
     def start_server(self):
         self.server = websockets.serve(self.listener, self.host, self.port)
@@ -59,8 +60,13 @@ class Server(object):
                 now = datetime.now()
                 if now > self.state.start_time:
                     dt = (now - prev).total_seconds()
-                    self.track.update_all(dt)
                     self.game_time = (now - self.state.start_time).total_seconds()
+                    self.track.update_all(self.game_time)
+                    winner = self.track.check_winner()
+                    if winner is not None and self.winner is None:
+                        self.winner = winner
+                        await self.update_all('winner', winner.id)
+
                     events = []
                     with self.events_lock:
                         events = self.events
@@ -113,7 +119,6 @@ class Server(object):
             await self.begin_countdown()
         else:
             car = self.track.get_car_by_id(client.id)
-            print("PARSED", parsed)
             timestamp, speed, distance = parsed.data
             event = Event(parsed.subject, timestamp, speed, distance)
             car.append_events([event], self.game_time)
@@ -127,6 +132,7 @@ class Server(object):
     async def begin_countdown(self):
         if self.state.mode is not 'LOBBY':
             return
+        self.state.mode = 'PLAY'
         for client in self.state.clients.values():
             self.track.add_participant(Car(client.id))
         self.state.start_time = datetime.now() + timedelta(seconds=5)

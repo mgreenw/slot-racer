@@ -74,7 +74,8 @@ class Client(object):
             ping=self.ping,
             cars=self.cars,
             begin_countdown=self.begin_countdown,
-            update=self.server_update
+            update=self.server_update,
+            winner=self.winner
         )
         handler = subjects.get(message.subject, None)
         if handler is None:
@@ -119,4 +120,5 @@ class Client(object):
 
                 car.append_events(events_to_insert, self.renderer.game_time)
 
-
+    def winner(self, data):
+        self.renderer.set_winner(data)
