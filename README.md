@@ -20,7 +20,7 @@ When done, deactivate the venv: `deactivate`
 
 ### Usage
 
-1. python run_server.py
+1. python run_server.py \[HOSTNAME, default='localhost'] \[PORT]
 2. python run_client.py \[HOSTNAME, default='localhost'] \[PORT]
 
 ### Code Overview
