@@ -155,7 +155,7 @@ class Renderer(object):
 
             # If the car is fallen, check if the explode event needs to be
             # sent to the server
-            if self.local_car.fallen
+            if self.local_car.fallen:
                 if not self.local_car.fallen.sent_to_server:
                     self.local_car.fallen.sent_to_server = True
                     self.client.send(
@@ -177,7 +177,7 @@ class Renderer(object):
                         (self.gametime, event.speed, event.distance)
                     )
 
-             # Update the track using the delta
+            # Update the track using the delta
             self.track.update_all(self.gametime)
 
     def draw(self):

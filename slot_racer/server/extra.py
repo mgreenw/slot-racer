@@ -1,6 +1,12 @@
+# Author: Max Greenwald, Pulkit Jain
+# 12/07/2018
+#
+# Module to implement the extraneous definitions we might need in a server
+
 from ..game import Track
 
-class Client(object):
+
+class ServerClient(object):
     def __init__(self, id, socket, latency):
         self.id = id
         self.socket = socket
@@ -30,7 +36,7 @@ class ServerState(object):
         pass
 
     def add_client(self, client_socket, client_latency):
-        client = Client(self.max_id, client_socket, client_latency)
+        client = ServerClient(self.max_id, client_socket, client_latency)
         self.clients[client.socket] = client
         self.max_id += 1
         return client.id
