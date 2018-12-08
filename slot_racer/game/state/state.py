@@ -12,10 +12,8 @@ import copy
 
 class Car(object):
     """A Car is what will be used to race others on our Track
-
     An important invariant in our definition is that a cars id is also its
     position on the track (innermost track at start has id = 0)
-
     It is defined by the following attributes:
     - id: This is the index of the car in the participants attribute of the
           track. NOTE invariant defined above
@@ -30,7 +28,6 @@ class Car(object):
           We use this data to process collisions and other effects
     - model: This is an image to represent our car. It defaults to a basic
           image if no choice on this is made by the user
-
     And the following behaviours:
     - accelerate(gametime): Changes the Car to reflect acceleration
     - stop_accelerating(gametime): Changes the Car to reflect stoppage of
@@ -150,10 +147,8 @@ class Car(object):
 
 class Track(object):
     """A Track is what we will race our Cars on
-
     An important invariant in our definition is that the id of each car will be
     its index in our participants list
-
     It is defined by the following attributes:
     - participants: List of Cars participating in the race
           NOTE: As this scales, we might consider migrating this to a dictionary
@@ -237,5 +232,3 @@ class Track(object):
             points.append(physics.calculate_posn(dummy))
             dummy.distance += (1 / 600)
         return points
-
-

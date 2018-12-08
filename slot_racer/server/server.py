@@ -44,7 +44,7 @@ class Server(object):
         self.track       = Track()
         self.events      = []
         self.events_lock = Lock()
-        self.game_time   = 0
+        self.gametime   = 0
         self.winner      = None
 
     def start_server(self):
@@ -142,7 +142,7 @@ class Server(object):
             car = self.track.get_car_by_id(client.id)
             timestamp, speed, distance = parsed.data
             event = Event(parsed.subject, timestamp, speed, distance)
-            car.append_events([event], self.game_time)
+            car.append_events([event], self.gametime)
             with self.events_lock:
                 self.events.append((client.id, parsed))
 
