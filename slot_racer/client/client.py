@@ -127,7 +127,6 @@ class Client(object):
                     events_to_insert.append(e)
 
                 car.append_events(events_to_insert, self.renderer.gametime)
-                car.append_events(events_to_insert, self.renderer.game_time)
 
     def winner(self, data):
         """Declares the winner"""
