@@ -10,6 +10,7 @@ from .extra import log
 
 # global definitions
 INIT_LEN = 10
+DEF_TS = 0.015
 
 
 def test0():
@@ -38,7 +39,7 @@ def test1():
     track, match = Track(), []
 
     try:
-        track.update_all(.015)
+        track.update_all(DEF_TS)
         match.append(False)
     except:
         match.append(True)
@@ -52,8 +53,8 @@ def test2():
     track, match = Track(num_participants=INIT_LEN), []
 
     for car in track.participants:
-        car.accelerate()
-    track.update_all(.015)
+        car.accelerate(DEF_TS)
+    track.update_all(DEF_TS)
     for i in range(1, INIT_LEN):
         prev, car = track.participants[i-1], track.participants[i]
         match.append(not car.fallen and car.speed == prev.speed and
@@ -68,11 +69,11 @@ def test3():
     track, match = Track(num_participants=INIT_LEN), []
 
     for car in track.participants:
-        car.accelerate()
-    track.update_all(.015)
+        car.accelerate(DEF_TS)
+    track.update_all(DEF_TS)
     for car in track.participants[::2]:
-        car.stop_accelerating()
-    track.update_all(.015)
+        car.stop_accelerating(DEF_TS)
+    track.update_all(DEF_TS)
     for i in range(1, INIT_LEN - 1):
         prev, car = track.participants[i-1], track.participants[i+1]
         match.append(not car.fallen and car.speed == prev.speed and

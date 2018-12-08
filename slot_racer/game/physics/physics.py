@@ -1,5 +1,7 @@
 # Nathan Allen
-# 3 December 2018
+# 6 December 2018
+#
+# Physics library for game state and rendering
 
 import math
 
@@ -14,12 +16,15 @@ ACCELERATION = 0.2
 
 
 def falling(car):
+    """Determines whether or not the car is falling.
+    """
     return car.speed > threshold(car)
 
 def threshold(car):
     d = car.distance % 1
     switch = RATIO if car.id == 0 else 1 - RATIO
-    c, scale_fn = (switch, scale_second_loop) if d >= switch else ((1 - switch), scale_first_loop)
+    c, scale_fn = ((switch, scale_second_loop) if d >= switch
+        else ((1 - switch), scale_first_loop))
     if (d < switch):
         threshold = 1 - (c * math.cos(scale_fn(d, switch)))
     else:
@@ -54,15 +59,21 @@ def calculate_speed(speed, accelerating, timestep):
 
 def calculate_distance(distance, initial_speed, accelerating, timestep):
     if accelerating:
-        return distance + (initial_speed * timestep) + .5 * ACCELERATION * math.pow(timestep, 2)
+        return (distance + (initial_speed * timestep) +
+            .5 * ACCELERATION * math.pow(timestep, 2))
     else:
         time_until_stop = initial_speed / ACCELERATION
         if time_until_stop > timestep:
-            return distance + (initial_speed * timestep) - .5 * ACCELERATION * math.pow(timestep, 2)
+            return (distance + (initial_speed * timestep) -
+                .5 * ACCELERATION * math.pow(timestep, 2))
         else:
-            return distance + (initial_speed * time_until_stop) - .5 * ACCELERATION * math.pow(time_until_stop, 2)
+            return (distance + (initial_speed * time_until_stop) -
+                .5 * ACCELERATION * math.pow(time_until_stop, 2))
 
 def car_timestep(car, timestep):
-    distance = calculate_distance(car.distance, car.speed, car.is_accelerating, timestep)
+    """Gets the new speed and distance of the car after a set amount of time.
+    """
+    distance = calculate_distance(car.distance, car.speed,
+                                  car.is_accelerating, timestep)
     speed = calculate_speed(car.speed, car.is_accelerating, timestep)
     return speed, distance

@@ -5,10 +5,6 @@
 # modules need
 
 
-# package imports
-import datetime
-
-
 class FallData(object):
     """We use this to transfer data required to process the fallout from a car
     falling off
