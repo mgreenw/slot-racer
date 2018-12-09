@@ -12,16 +12,22 @@ one another
 ### Setup
 
 1. Use Python 3.7.1: `python --version`
-2. Setup a virtual env: `python -m venv * ./venv`
-3. Then, activate the vevn: `source * ./venv/bin/activate`
+2. Setup a virtual env: `python -m venv ./venv`
+3. Then, activate the venv: `source ./venv/bin/activate`
 4. Then, do `pip install -r requirements.txt`
 
 When done, deactivate the venv: `deactivate`
 
+NOTE: If glfw is not installed in your computer, do the following:
+* If Mac:
+    * Install brew
+    * brew install glfw3
+Ensure you have glfw3 on your device to run the above code.
+
 ### Usage
 
-1. python run_server.py \[HOSTNAME, default='localhost'] \[PORT]
-2. python run_client.py \[HOSTNAME, default='localhost'] \[PORT]
+1. python run_server.py \[HOSTNAME, default='localhost'] \[PORT, default=8765]
+2. python run_client.py \[HOSTNAME, default='localhost'] \[PORT, default=8765]
 
 ### Code Overview
 
